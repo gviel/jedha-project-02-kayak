@@ -1,0 +1,29 @@
+name: kayak
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.13
+  - pip
+  - python-dotenv
+  - requests
+  - numpy
+  - pandas
+  - plotly
+  - ipykernel # ne pas installer jupyterlab qui est dans base
+  - scikit-learn
+  - glom
+  - scrapy
+  - sqlalchemy
+  - boto3
+  - s3fs
+  - psycopg2-binary
+  - conda-bash-completion
+  - yaml
+  - nbformat
+  - playwright
+  #- streamlit
+  #- seaborn
+  #- pip:
+  #  - -r file:env_kayak_requirements.txt
+
