@@ -11,6 +11,7 @@ dependencies:
   - pandas
   - plotly
   - ipykernel # ne pas installer jupyterlab qui est dans base
+  - notebook
   - scikit-learn
   - glom
   - scrapy
