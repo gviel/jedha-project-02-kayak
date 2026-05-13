@@ -30,7 +30,7 @@ st.title("KAYAK — Top destinations météo en France")
 def load_weather_scores() -> pd.DataFrame:
     if DATABASE_URL:
         engine = create_engine(DATABASE_URL)
-        return pd.read_sql("SELECT * FROM weather_scores ORDER BY mean DESC", engine)
+        return pd.read_sql("SELECT * FROM weather_scores ORDER BY score_final DESC", engine)
     files = sorted(DATA_DIR_CSV.glob("*/weather-scores-[0-9]*.csv"))
     if not files:
         return pd.DataFrame()
@@ -98,9 +98,9 @@ with col_map1:
         df_map,
         lat="lat", lon="lon",
         hover_name="city_name",
-        hover_data={"mean": ":.1f", "lat": False, "lon": False},
-        size="mean",
-        color="mean",
+        hover_data={"score_final": ":.1f", "mean": ":.1f", "lat": False, "lon": False},
+        size="score_final",
+        color="score_final",
         color_continuous_scale="RdYlGn",
         zoom=4,
         height=520,
@@ -132,12 +132,13 @@ with col_map1:
 
 with col_rank:
     st.markdown("**Classement des villes**")
-    df_rank = df_scores[["city_name", "mean"]].copy()
+    df_rank = df_scores[["city_name", "score_final"]].copy()
+    df_rank = df_rank.rename(columns={"score_final": "Score"})
     df_rank["city_name"] = [
         f"⭐ {c}" if i < 5 else c for i, c in enumerate(df_rank["city_name"])
     ]
     st.dataframe(
-        df_rank.style.background_gradient(subset=["mean"], cmap="RdYlGn"),
+        df_rank.style.background_gradient(subset=["Score"], cmap="RdYlGn"),
         use_container_width=True,
         height=510,
         hide_index=True,

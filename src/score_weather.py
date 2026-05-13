@@ -135,17 +135,25 @@ print(f"Saved daily scores   → {out_daily}")
 records_summary = []
 for (city_id, city_name), grp in df_daily.groupby(["city_id", "city_name"]):
     s = grp["score_day"]
+    mean   = round(s.mean(), 2)
+    std    = round(s.std(), 2)
+    s_min  = round(s.min(), 2)
+    s_max  = round(s.max(), 2)
+    # pénalité cumulative pour variabilité excessive : -10 si min < mean-3σ, -10 si max > mean+3σ
+    penalty = (-10 if s_min < mean - 3 * std else 0) + (-10 if s_max > mean + 3 * std else 0)
     records_summary.append({
-        "city_id":   city_id,
-        "city_name": city_name,
-        "mean":      round(s.mean(), 2),
-        "median":    round(s.median(), 2),
-        "min":       round(s.min(), 2),
-        "max":       round(s.max(), 2),
+        "city_id":     city_id,
+        "city_name":   city_name,
+        "mean":        mean,
+        "median":      round(s.median(), 2),
+        "min":         s_min,
+        "max":         s_max,
+        "std":         std,
+        "score_final": round(mean + penalty, 2),
     })
 
 out_summary = os.path.join(DATA_DIR_CSV_TODAY, f"weather-scores-{TODAY_ISO}.csv")
 (pd.DataFrame(records_summary)
-   .sort_values("mean", ascending=False)
+   .sort_values("score_final", ascending=False)
    .to_csv(out_summary, index=False, encoding="utf-8"))
 print(f"Saved summary scores → {out_summary}")

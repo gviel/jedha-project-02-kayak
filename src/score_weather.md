@@ -86,7 +86,16 @@ Proposition d'une échelle de 0 à 100, où :
 Score = (Température×0.3) + (Précipitations×0.3) + (Vent×0.15) + (Couverture nuageuse×0.10) + (Humidité×0.1) + (Pression atmo×0.05)
 
 4. Calcul score final pour la période de 4 jours
-On calcul la moyenne, médiane, min et max des scores journaliers.
+On calcule la moyenne, médiane, min, max et écart-type (std) des scores journaliers.
+
+Puis on applique une **pénalité cumulative** pour variabilité excessive :
+- `-10` si `min < mean − 3 × std` (score plancher anormalement bas)
+- `-10` supplémentaire si `max > mean + 3 × std` (score plafond anormalement haut)
+- La pénalité totale peut donc atteindre `-20`
+
+`score_final = mean + penalty`  (penalty ∈ {0, −10, −20})
+
+Cette pénalité permet de déclasser les destinations dont la météo est trop instable sur la période, même si leur moyenne est élevée.
 
 # Production fichiers résultats
 
@@ -96,4 +105,4 @@ Seuls les slots horaires **08:00:00 à 20:00:00** (champ `time`) sont retenus po
 
 Fichiers de sortie générés dans `data/csv/<YYYYMMDD>/` :
   - `weather-scores-daily-<YYYYMMDD>.csv` : colonnes `city_id`, `city_name`, `date`, `score_day` — une ligne par ville × jour
-  - `weather-scores-<YYYYMMDD>.csv` : colonnes `city_id`, `city_name`, `mean`, `median`, `min`, `max` — une ligne par ville, trié par `mean` décroissant
+  - `weather-scores-<YYYYMMDD>.csv` : colonnes `city_id`, `city_name`, `mean`, `median`, `min`, `max`, `std`, `score_final` — une ligne par ville, trié par `score_final` décroissant

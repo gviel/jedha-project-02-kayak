@@ -17,7 +17,7 @@ script `src/load_to_db.py` - charge les fichier CSV du bucket S3 dans PostgreSQL
 1. lire les fichiers CSV depuis le bucket S3 via boto3/s3fs  :
    - `cities.csv` → table `cities` (colonnes : `city_id, city_name, lat, lon`)
    - `weather-scores-daily-<YYYYMMDD>.csv` → table `weather_scores_daily` (colonnes : `city_id, city_name, date, score_day`)
-   - `weather-scores-<YYYYMMDD>.csv` → table `weather_scores` (colonnes : `city_id, city_name, mean, median, min, max`)
+   - `weather-scores-<YYYYMMDD>.csv` → table `weather_scores` (colonnes : `city_id, city_name, mean, median, min, max, std, score_final`)
    - `<YYYYMMDD>/hotels-<city_id>-<YYYYMMDD>.csv` → table `hotels` (colonnes : `city_id, city_name, hotel_name, lat, lon, description, score, url, load_date`)
 
 2. connexion PostgreSQL via SQLAlchemy avec la variable d'env `DATABASE_URL` (format : `postgresql://user:password@host:port/dbname`)
