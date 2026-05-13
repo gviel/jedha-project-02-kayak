@@ -1,6 +1,6 @@
-# KAYAK — Recommandation de destinations touristiques en France
+# JEDHA : Projet KAYAK — Recommandation de destinations touristiques en France
 
-Projet de data engineering qui classe 35 villes touristiques françaises par score météo sur 4 jours et affiche les meilleurs hôtels Booking.com pour chaque destination.
+Projet de data engineering qui classe 35 villes touristiques françaises par score météo sur 4 jours et affiche les meilleurs hôtels (d'un site de réservation en ligne) pour chaque destination.
 
 ## Objectifs
 
