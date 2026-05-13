@@ -1,6 +1,9 @@
-# JEDHA : Projet KAYAK — Recommandation de destinations touristiques en France
+# JEDHA : Projet KAYAK (bloc 1) — Recommandation de destinations touristiques en France
 
 Projet de data engineering qui classe 35 villes touristiques françaises par score météo sur 4 jours et affiche les meilleurs hôtels (d'un site de réservation en ligne) pour chaque destination.
+
+**NB: pas de Notebook dans ce projet étant donné que c'est un pipeline data automatisé. L'UI sous forme de dashboard fera office de Notebook pour visualiser les résultats.**
+
 
 ## Objectifs
 

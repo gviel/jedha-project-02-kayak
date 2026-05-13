@@ -119,7 +119,7 @@ User Interface  ──► src/kayak_ui.py             ──► Plotly and/or St
 ```
 
 ## Weather Scoring Model
-- see specs @src/score_weather.md and `docs/systeme scoring avec openweathermap API.md`.
+- See specs @src/score_weather.md and `docs/systeme scoring avec openweathermap API.md`.
 
 ## Interface utilisateur : Streamlit UI
 ```bash
@@ -127,4 +127,4 @@ streamlit run src/kayak_ui.py --server.headless true --server.port 8501
 ```
 
 ## Known Issues
-- Booking.com scraping requires realistic User-Agent headers and may require a proxy to avoid blocks.
+
