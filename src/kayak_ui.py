@@ -18,8 +18,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATA_DIR_CSV = Path("data/csv")
-DATABASE_URL = os.environ.get("DATABASE_URL")
+DATA_DIR_CSV  = Path("data/csv")
+DATABASE_URL  = os.environ.get("DATABASE_URL")
+TOP_N_HOTELS  = int(os.environ.get("TOP_N_HOTELS", 20))
 
 st.set_page_config(page_title="KAYAK - Meilleures destinations en France", layout="wide")
 st.title("KAYAK — Top destinations météo en France")
@@ -51,7 +52,7 @@ def load_hotels(city: str) -> pd.DataFrame:
         try:
             engine = create_engine(DATABASE_URL)
             df = pd.read_sql(
-                "SELECT * FROM hotels WHERE city_name = %(city)s ORDER BY load_date DESC, score DESC LIMIT 20",
+                f"SELECT * FROM hotels WHERE city_name = %(city)s ORDER BY load_date DESC, score DESC LIMIT {TOP_N_HOTELS}",
                 engine, params={"city": city},
             )
             if not df.empty:
@@ -219,7 +220,7 @@ else:
             event2 = st.plotly_chart(fig2, use_container_width=True, on_select="rerun", key="map2")
 
         with col_hotels:
-            st.markdown("**Top 20 hôtels**")
+            st.markdown(f"**Top {TOP_N_HOTELS} hôtels**")
             st.dataframe(
                 df_h[["hotel_name", "score", "url"]].sort_values("score", ascending=False),
                 use_container_width=True,

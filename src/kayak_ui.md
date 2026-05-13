@@ -3,6 +3,16 @@
 ## Role
 Cette interface utilisateur doit permettre de visualiser les résultats de la base de données sous la forme
 
+## Configuration
+Variables d'environnement lues par le script (via `.env` en local, ou secrets Streamlit Cloud en déploiement) :
+
+| Variable | Obligatoire | Défaut | Description |
+|---|---|---|---|
+| `DATABASE_URL` | oui | — | URL de connexion PostgreSQL (`postgresql://user:pass@host:port/db`) |
+| `TOP_N_HOTELS` | non | `20` | Nombre max d'hôtels affichés par ville (LIMIT SQL + tableau UI) |
+
+En l'absence de `DATABASE_URL`, l'UI tente un fallback sur les fichiers CSV locaux (`data/csv/`).
+
 ## Entrées
   - Base de données Postgresql (chez AWS RDS ou Neon)
 

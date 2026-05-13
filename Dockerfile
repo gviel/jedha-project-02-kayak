@@ -21,9 +21,6 @@ RUN mkdir -p data/html data/csv data/json/cities data/json/weather
 
 RUN chmod +x pipeline.sh entrypoint.sh
 
-# cron : exécution du pipeline tous les jours à 06:00 UTC
-# Pour test local à 15:30 CEST (= 13:30 UTC), remplacer par : 30 13 * * *
-RUN echo "0 6 * * * cd /app && /bin/bash /app/pipeline.sh >> /var/log/kayak.log 2>&1" | crontab -
-
 # VOLUME ["data"] # décommenter pour persister data/ entre runs
+# La cron est installée dynamiquement par entrypoint.sh depuis la variable CRON_SCHEDULE (défaut : 0 6 * * *)
 CMD ["/app/entrypoint.sh"]
