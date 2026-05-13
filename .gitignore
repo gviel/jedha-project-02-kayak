@@ -1,5 +1,7 @@
-# on inclus pas le sous-projet de scraper
 scraper_playwright/
+docs/kayak_accessKeys.csv
+data/
+old/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -1,0 +1,10 @@
+requests
+python-dotenv
+pandas
+numpy
+glom
+boto3
+sqlalchemy
+psycopg2-binary
+plotly
+playwright==1.57.0

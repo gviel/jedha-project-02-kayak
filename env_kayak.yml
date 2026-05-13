@@ -12,19 +12,14 @@ dependencies:
   - plotly
   - ipykernel # ne pas installer jupyterlab qui est dans base
   - notebook
-  - scikit-learn
   - glom
-  - scrapy
   - sqlalchemy
   - boto3
-  - s3fs
   - psycopg2-binary
   - conda-bash-completion
-  - yaml
   - nbformat
-  - playwright
-  #- streamlit
-  #- seaborn
-  #- pip:
-  #  - -r file:env_kayak_requirements.txt
+  - streamlit
+  - matplotlib
+  - pip:
+    - playwright==1.57.0
 
