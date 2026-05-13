@@ -38,6 +38,9 @@ def load_weather_scores() -> pd.DataFrame:
 
 @st.cache_data
 def load_cities() -> pd.DataFrame:
+    if DATABASE_URL:
+        engine = create_engine(DATABASE_URL)
+        return pd.read_sql("SELECT * FROM cities", engine)
     p = DATA_DIR_CSV / "cities.csv"
     return pd.read_csv(p) if p.exists() else pd.DataFrame()
 

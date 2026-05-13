@@ -53,6 +53,16 @@ if __name__ == "__main__":
     date_prefix = f"{S3_PREFIX}{TODAY}/"
     all_keys = list_s3_keys(date_prefix)
 
+    # --- cities (référentiel des villes) ---
+    # Données de référence stables : remplacement complet à chaque chargement.
+    cities_key = f"{S3_PREFIX}cities.csv"
+    try:
+        df = read_s3_csv(cities_key)
+        df.to_sql("cities", engine, if_exists="replace", index=False)
+        print(f"[OK] cities — {len(df)} rows")
+    except Exception as e:
+        print(f"[SKIP] cities.csv not found in S3: {e}")
+
     # --- weather_scores_daily ---
     # Données recalculées chaque jour : remplacement complet de la table.
     daily_keys = [k for k in all_keys if re.search(r"weather-scores-daily-\d{8}\.csv$", k)]
