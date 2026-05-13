@@ -212,3 +212,4 @@ marimo/_lsp/
 __marimo__/
 .vscode
 .devcontainer/
+.claude/scheduled_tasks.lock
