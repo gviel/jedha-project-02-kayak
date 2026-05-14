@@ -28,7 +28,7 @@ Booking.com    ──►  scraper_hotels.py   ──►  data/csv/<YYYYMMDD>/hot
 ## Prérequis
 
 - Docker (recommandé) **ou** Python 3.13 + conda
-- Clés API : OpenWeatherMap, AWS (S3 + RDS ou Neon PostgreSQL)
+- Clés API : OpenWeatherMap, AWS S3, AWS RDS ou Neon pour la base de données PostgreSQL
 
 ## Installation et configuration
 
