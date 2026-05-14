@@ -7,6 +7,7 @@
 import math
 import os
 import re
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -24,6 +25,31 @@ TOP_N_HOTELS  = int(os.environ.get("TOP_N_HOTELS", 20))
 
 st.set_page_config(page_title="KAYAK - Meilleures destinations en France", layout="wide")
 st.title("KAYAK — Top destinations météo en France")
+
+
+@st.cache_data
+def get_extraction_date() -> str | None:
+    if DATABASE_URL:
+        try:
+            engine = create_engine(DATABASE_URL)
+            result = pd.read_sql("SELECT MAX(load_date) AS d FROM hotels", engine)
+            if not result.empty and result["d"].iloc[0]:
+                return pd.to_datetime(result["d"].iloc[0]).strftime("%-d %B %Y")
+        except Exception:
+            pass
+    files = sorted(DATA_DIR_CSV.glob("*/weather-scores-[0-9]*.csv"))
+    if files:
+        m = re.search(r"(\d{8})", files[-1].name)
+        if m:
+            return datetime.strptime(m.group(1), "%Y%m%d").strftime("%-d %B %Y")
+    return None
+
+
+_extraction_date = get_extraction_date()
+if _extraction_date:
+    st.caption(f"Données extraites le {_extraction_date}")
+else:
+    st.caption("Date d'extraction inconnue — vérifiez le pipeline.")
 
 
 @st.cache_data
