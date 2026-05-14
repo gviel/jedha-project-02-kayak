@@ -4,6 +4,13 @@ cd /app
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] ── KAYAK pipeline start ──"
 
+# Purge des fichiers HTML de debug et snapshots de plus de 4 jours
+# (le scraper hotels produit ~20 fichiers/ville/jour — sans purge le volume croît indéfiniment)
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Step 0: purge HTML/snapshots > 4 jours"
+find data/html -maxdepth 1 -name "*.html" -mtime +4 -delete
+find data/html/snap -name "*.png" -mtime +4 -delete 2>/dev/null || true
+echo "Purge OK"
+
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Step 1: geocode cities"
 python src/scraper_cities.py
 
