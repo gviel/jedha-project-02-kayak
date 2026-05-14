@@ -1,5 +1,7 @@
 FROM python:3.12-bookworm
 
+ENV TZ=Europe/Paris
+
 # system deps required by Playwright/Chromium + cron
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
@@ -22,5 +24,5 @@ RUN mkdir -p data/html data/csv data/json/cities data/json/weather
 RUN chmod +x pipeline.sh entrypoint.sh
 
 # VOLUME ["data"] # décommenter pour persister data/ entre runs
-# La cron est installée dynamiquement par entrypoint.sh depuis la variable CRON_SCHEDULE (défaut : 0 6 * * *)
+# La cron est installée dynamiquement par entrypoint.sh depuis la variable CRON_SCHEDULE (défaut : 0 7 * * * = 07:00 Europe/Paris)
 CMD ["/app/entrypoint.sh"]
