@@ -94,7 +94,7 @@ def load_cities() -> pd.DataFrame:
     return pd.read_csv(p) if p.exists() else pd.DataFrame()
 
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def load_score_history(city_id: str) -> pd.DataFrame:
     if DATABASE_URL:
         try:
