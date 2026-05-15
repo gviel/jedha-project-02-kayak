@@ -1,5 +1,14 @@
 # Spécifications script : load_to_db.py
 
+## Prérequis — initialisation de la base de données
+Avant le premier lancement de `load_to_db.py`, créer le schéma PostgreSQL :
+
+```bash
+psql $DATABASE_URL -f sql/schema.sql
+```
+
+Le script `sql/schema.sql` crée les 5 tables (`cities`, `weather_scores`, `weather_scores_daily`, `hotels`, `history`) avec leurs contraintes PRIMARY KEY. À rejouer intégralement sur une nouvelle base (idempotent via `CREATE TABLE IF NOT EXISTS`).
+
 ## Configuration
 Variables d'environnement requises (dans `.env`) :
   - `DATABASE_URL` — URL de connexion PostgreSQL (AWS RDS ou Neon DB)

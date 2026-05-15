@@ -43,6 +43,12 @@ conda run -n kayak playwright install chromium   # installe le binaire Chromium 
   - création d'un fichier `.env_template` qui est la copie de `.env`avec les mêmes variables mais avec des valeurs fictives pour raison de sécurité. Ce fichier doit être maintenu dès que le `.env` est modifié
 
 ## Déploiement
+0. **Initialisation de la base de données** (une seule fois, avant le premier lancement du pipeline) :
+```bash
+psql $DATABASE_URL -f sql/schema.sql
+```
+Le script `sql/schema.sql` crée les 5 tables avec leurs contraintes PRIMARY KEY. Idempotent (`CREATE TABLE IF NOT EXISTS`). Voir specs @src/load_to_db.md.
+
 1. déploiement dans un conteneur Docker linux des scripts
 2. base Dockerfile sur python 3.12 => https://playwright.dev/python/docs/docker
 ```
