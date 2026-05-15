@@ -25,3 +25,10 @@ script `src/load_to_db.py` - charge les fichier CSV du bucket S3 dans PostgreSQL
 3. stratégie d'insertion :
   - `if_exists='replace'` pour `cities` (données de référence stables) et les tables de scores (données quotidiennes recalculées)
   - stratégie upsert pour `hotels` : une seule ligne par hôtel (clé = `city_id` + `hotel_name`), load_date la plus récente conservée — réécriture complète de la table à chaque chargement
+
+4. table `history` (upsert après chaque chargement) :
+  - Permet de tracer à quelle date sont faits les chargements en base de données
+  - colonnes : `table_name` (PK), `load_date`
+  - `load_date` = nom du répertoire S3 `YYYYMMDD` pour les tables `weather_scores`, `weather_scores_daily` et `hotels`
+  - `load_date`= date système pour la table `cities`
+  - créée automatiquement si elle n'existe pas (`CREATE TABLE IF NOT EXISTS`)

@@ -24,7 +24,7 @@ AWS_ACCESS_KEY_ID     = os.environ["AWS_ACCESS_KEY_ID"]
 AWS_SECRET_ACCESS_KEY = os.environ["AWS_SECRET_ACCESS_KEY"]
 AWS_REGION            = os.environ.get("AWS_REGION", "eu-west-3")
 
-TODAY = sys.argv[1] if len(sys.argv) > 1 else datetime.now().strftime("%Y%m%d")
+EXTRACTION_DATE = sys.argv[1] if len(sys.argv) > 1 else datetime.now().strftime("%Y%m%d")
 
 s3 = boto3.client(
     "s3",
@@ -49,8 +49,24 @@ def list_s3_keys(prefix: str) -> list[str]:
     return keys
 
 
+def update_history(table_name: str, load_date: str) -> None:
+    """Upsert dans history : EXTRACTION_DATE (répertoire S3) pour les données météo/hotels, date système pour cities."""
+    with engine.begin() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS history (
+                table_name VARCHAR PRIMARY KEY,
+                load_date  VARCHAR
+            )
+        """))
+        conn.execute(text("""
+            INSERT INTO history (table_name, load_date)
+            VALUES (:t, :d)
+            ON CONFLICT (table_name) DO UPDATE SET load_date = EXCLUDED.load_date
+        """), {"t": table_name, "d": load_date})
+
+
 if __name__ == "__main__":
-    date_prefix = f"{S3_PREFIX}{TODAY}/"
+    date_prefix = f"{S3_PREFIX}{EXTRACTION_DATE}/"
     all_keys = list_s3_keys(date_prefix)
 
     # --- cities (référentiel des villes) ---
@@ -59,6 +75,7 @@ if __name__ == "__main__":
     try:
         df = read_s3_csv(cities_key)
         df.to_sql("cities", engine, if_exists="replace", index=False)
+        update_history("cities", datetime.now().strftime("%Y%m%d"))
         print(f"[OK] cities — {len(df)} rows")
     except Exception as e:
         print(f"[SKIP] cities.csv not found in S3: {e}")
@@ -69,6 +86,7 @@ if __name__ == "__main__":
     if daily_keys:
         df = read_s3_csv(daily_keys[-1])
         df.to_sql("weather_scores_daily", engine, if_exists="replace", index=False)
+        update_history("weather_scores_daily", EXTRACTION_DATE)
         print(f"[OK] weather_scores_daily — {len(df)} rows")
     else:
         print("[SKIP] no weather_scores_daily file found in S3")
@@ -79,6 +97,7 @@ if __name__ == "__main__":
     if summary_keys:
         df = read_s3_csv(summary_keys[-1])
         df.to_sql("weather_scores", engine, if_exists="replace", index=False)
+        update_history("weather_scores", EXTRACTION_DATE)
         print(f"[OK] weather_scores — {len(df)} rows")
     else:
         print("[SKIP] no weather_scores summary file found in S3")
@@ -93,7 +112,7 @@ if __name__ == "__main__":
         for k in hotel_keys:
             df = read_s3_csv(k)
             m = re.search(r"-(\d{8})\.csv$", k)
-            df["load_date"] = m.group(1) if m else TODAY
+            df["load_date"] = m.group(1) if m else EXTRACTION_DATE
             frames.append(df)
         df_new = pd.concat(frames, ignore_index=True)
 
@@ -113,6 +132,7 @@ if __name__ == "__main__":
 
         #   4. Réécrire la table complète — nettoie au passage les doublons existants
         df_all.to_sql("hotels", engine, if_exists="replace", index=False)
+        update_history("hotels", EXTRACTION_DATE)
         print(f"[OK] hotels — {len(df_all)} rows total ({len(df_new)} new/updated from {len(hotel_keys)} file(s))")
     else:
         print("[SKIP] no hotels files found in S3")
