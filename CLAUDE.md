@@ -10,6 +10,7 @@ The full pipeline: geocode cities → fetch weather forecasts → score destinat
 
 ## Regles générales
 - montrer les diffs lorsqu'il y a des modifications
+- toujours travailler sur la branche `gviel` (branche de développement), puis merger dans `main` une fois validé
 
 ## Convention de commits (Conventional Commits)
 | Préfixe | Usage |
