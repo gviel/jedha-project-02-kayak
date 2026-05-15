@@ -23,7 +23,8 @@ script `src/load_to_db.py` - charge les fichier CSV du bucket S3 dans PostgreSQL
 2. connexion PostgreSQL via SQLAlchemy avec la variable d'env `DATABASE_URL` (format : `postgresql://user:password@host:port/dbname`)
 
 3. stratégie d'insertion :
-  - `if_exists='replace'` pour `cities` (données de référence stables) et les tables de scores (données quotidiennes recalculées)
+  - `if_exists='replace'` pour `cities` (données de référence stables) et `weather_scores` (agrégat 4j recalculé quotidiennement)
+  - stratégie upsert pour `weather_scores_daily` : clé = `(city_id, date)` — `ON CONFLICT (city_id, date) DO UPDATE SET score_day` — la table historise tous les scores jour par ville ; une contrainte PRIMARY KEY sur `(city_id, date)` est requise en base (à créer manuellement si migration depuis `if_exists='replace'`)
   - stratégie upsert pour `hotels` : une seule ligne par hôtel (clé = `city_id` + `hotel_name`), load_date la plus récente conservée — réécriture complète de la table à chaque chargement
 
 4. table `history` (upsert après chaque chargement) :

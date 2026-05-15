@@ -14,6 +14,7 @@ import boto3
 import pandas as pd
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 load_dotenv()
 
@@ -49,6 +50,18 @@ def list_s3_keys(prefix: str) -> list[str]:
     return keys
 
 
+def upsert_weather_daily(table, conn, keys, data_iter):
+    """Méthode pandas to_sql : ON CONFLICT (city_id, date) DO UPDATE score_day."""
+    stmt = pg_insert(table.table).values(
+        [dict(zip(keys, row)) for row in data_iter]
+    )
+    stmt = stmt.on_conflict_do_update(
+        index_elements=["city_id", "date"],
+        set_={"score_day": stmt.excluded.score_day},
+    )
+    conn.execute(stmt)
+
+
 def update_history(table_name: str, load_date: str) -> None:
     """Upsert dans history : EXTRACTION_DATE (répertoire S3) pour les données météo/hotels, date système pour cities."""
     with engine.begin() as conn:
@@ -81,13 +94,14 @@ if __name__ == "__main__":
         print(f"[SKIP] cities.csv not found in S3: {e}")
 
     # --- weather_scores_daily ---
-    # Données recalculées chaque jour : remplacement complet de la table.
+    # Stratégie upsert : historisation des scores par ville × jour.
+    # Clé d'unicité = (city_id, date) — contrainte PRIMARY KEY requise en base.
     daily_keys = [k for k in all_keys if re.search(r"weather-scores-daily-\d{8}\.csv$", k)]
     if daily_keys:
         df = read_s3_csv(daily_keys[-1])
-        df.to_sql("weather_scores_daily", engine, if_exists="replace", index=False)
+        df.to_sql("weather_scores_daily", engine, if_exists="append", index=False, method=upsert_weather_daily)
         update_history("weather_scores_daily", EXTRACTION_DATE)
-        print(f"[OK] weather_scores_daily — {len(df)} rows")
+        print(f"[OK] weather_scores_daily — {len(df)} rows upserted")
     else:
         print("[SKIP] no weather_scores_daily file found in S3")
 

@@ -32,7 +32,13 @@ def get_forecast_period() -> tuple[str, str] | None:
     if DATABASE_URL:
         try:
             engine = create_engine(DATABASE_URL)
-            r = pd.read_sql("SELECT MIN(date) AS d_min, MAX(date) AS d_max FROM weather_scores_daily", engine)
+            r = pd.read_sql("""
+                SELECT MIN(date) AS d_min, MAX(date) AS d_max
+                FROM (
+                    SELECT DISTINCT date FROM weather_scores_daily
+                    ORDER BY date DESC LIMIT 4
+                ) t
+            """, engine)
             if not r.empty and r["d_min"].iloc[0]:
                 fmt = lambda d: pd.to_datetime(d).strftime("%-d %B %Y")
                 return fmt(r["d_min"].iloc[0]), fmt(r["d_max"].iloc[0])
@@ -86,6 +92,22 @@ def load_cities() -> pd.DataFrame:
         return pd.read_sql("SELECT * FROM cities", engine)
     p = DATA_DIR_CSV / "cities.csv"
     return pd.read_csv(p) if p.exists() else pd.DataFrame()
+
+
+@st.cache_data
+def load_score_history(city_id: str) -> pd.DataFrame:
+    if DATABASE_URL:
+        try:
+            engine = create_engine(DATABASE_URL)
+            return pd.read_sql("""
+                SELECT date, score_day FROM weather_scores_daily
+                WHERE city_id = %(city_id)s
+                  AND date >= CURRENT_DATE - INTERVAL '30 days'
+                ORDER BY date
+            """, engine, params={"city_id": city_id})
+        except Exception:
+            pass
+    return pd.DataFrame()
 
 
 @st.cache_data
@@ -284,3 +306,38 @@ else:
                     st.markdown(h_desc or "_Pas de description disponible._")
                     if h_url:
                         st.markdown(f"[Voir sur Booking.com]({h_url})")
+
+# BLOC 3 : historique scores météo 30 jours
+
+st.divider()
+st.subheader(f"Historique scores météo — {selected_city} (30 derniers jours)")
+
+city_id_sel = df_scores.loc[df_scores["city_name"] == selected_city, "city_id"].iloc[0] \
+    if not df_scores[df_scores["city_name"] == selected_city].empty else selected_city
+
+df_hist = load_score_history(city_id_sel)
+
+if df_hist.empty:
+    st.info("Aucun historique disponible — les données s'accumuleront au fil des extractions quotidiennes.")
+else:
+    df_hist["date"] = pd.to_datetime(df_hist["date"])
+    fig3 = px.line(
+        df_hist,
+        x="date",
+        y="score_day",
+        markers=True,
+        labels={"date": "Date", "score_day": "Score météo"},
+        color_discrete_sequence=["#2196F3"],
+    )
+    fig3.update_traces(line=dict(width=2), marker=dict(size=6))
+    fig3.update_layout(
+        yaxis=dict(range=[0, 100], title="Score météo (/100)"),
+        xaxis_title=None,
+        margin=dict(t=20, b=20),
+        height=300,
+    )
+    fig3.add_hrect(y0=80, y1=100, fillcolor="green",  opacity=0.07, line_width=0)
+    fig3.add_hrect(y0=60, y1=80,  fillcolor="yellow", opacity=0.07, line_width=0)
+    fig3.add_hrect(y0=40, y1=60,  fillcolor="orange", opacity=0.07, line_width=0)
+    fig3.add_hrect(y0=0,  y1=40,  fillcolor="red",    opacity=0.07, line_width=0)
+    st.plotly_chart(fig3, use_container_width=True)
