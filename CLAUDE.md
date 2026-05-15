@@ -128,3 +128,10 @@ streamlit run src/kayak_ui.py --server.headless true --server.port 8501
 
 ## Known Issues
 
+### `scraper_hotels.py` — timeout `networkidle` sur Booking.com
+`page.wait_for_load_state("networkidle")` provoque un `TimeoutError` (30 s) car Booking.com émet en permanence des requêtes background et n'atteint jamais l'état `networkidle`.
+
+**Fix appliqué** :
+- Page d'accueil et fiches hôtel : `wait_until="domcontentloaded"` + `wait_for_timeout(2000)`
+- Après soumission de recherche et après filtre Hôtels : `wait_for_selector('[data-testid="property-card"]')` — attend l'apparition des résultats plutôt que l'idle réseau
+

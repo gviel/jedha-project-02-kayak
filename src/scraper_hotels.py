@@ -347,8 +347,11 @@ async def main(from_date: datetime, to_date: datetime, top_n: int = TOP_N):
         page = await context.new_page()
 
         # charger la page d'accueil de booking.com
-        await page.goto(f"{BASE_URL}/index.fr.html", wait_until="load", timeout=PAGE_LOAD_TIMEOUT)
-        await page.wait_for_load_state('networkidle')
+        await page.goto(f"{BASE_URL}/index.fr.html", wait_until="domcontentloaded", timeout=PAGE_LOAD_TIMEOUT)
+        # networkidle timeout sur Booking.com : la page ne cesse d'émettre des requêtes background
+        # → on attend domcontentloaded + délai fixe plutôt que de bloquer indéfiniment
+        #await page.wait_for_load_state('networkidle')
+        await page.wait_for_timeout(2000)
 
         # on clique n'importe ou sur la gauche pour supprimer éventuelle popup de pub
         #await click_xy(page,x,y)
@@ -402,7 +405,9 @@ async def main(from_date: datetime, to_date: datetime, top_n: int = TOP_N):
             # valider et lancer la recherche
             #await page.click('button[type="submit"]:has-text("Rechercher")', timeout=CLICK_TIMEOUT)
             await safe_click(page, 'button[type="submit"]:has-text("Rechercher")', timeout=PAGE_LOAD_TIMEOUT)
-            await page.wait_for_load_state('networkidle')
+            # networkidle non fiable sur Booking.com après soumission du formulaire
+            #await page.wait_for_load_state('networkidle')
+            await page.wait_for_selector('[data-testid="property-card"], [data-testid="no-result-block"]', timeout=PAGE_LOAD_TIMEOUT)
 
             # on clique à gauche de la page pour enlever la popup
             await click_xy(page,x,y)
@@ -412,7 +417,10 @@ async def main(from_date: datetime, to_date: datetime, top_n: int = TOP_N):
             #await page.wait_for_selector('div[data-filters-group="ht_id"] input[name="ht_id=204"]', timeout=REFRESH_TIMEOUT)
             #await page.locator('div[data-filters-group="ht_id"] input[name="ht_id=204"]:visible').check()
             await safe_check_visible(page, 'div[data-filters-group="ht_id"] input[name="ht_id=204"]', timeout=PAGE_LOAD_TIMEOUT)
-            await page.wait_for_load_state("networkidle")
+            # networkidle timeout après application du filtre — Booking.com recharge la liste
+            # mais continue des requêtes background → on attend l'apparition des résultats filtrés
+            #await page.wait_for_load_state("networkidle")
+            await page.wait_for_selector('[data-testid="property-card"], [data-testid="no-result-block"]', timeout=PAGE_LOAD_TIMEOUT)
             logger.info("Filtre 'Hôtels' appliqué")
 
             await save_html(page, city_name)
@@ -428,8 +436,9 @@ async def main(from_date: datetime, to_date: datetime, top_n: int = TOP_N):
                 url_hotel = map_url_by_hotel[hotel_name]
                 hotel_page = await page.context.new_page()
                 try:
-                    await hotel_page.goto(url_hotel, wait_until="load", timeout=PAGE_LOAD_TIMEOUT)
-                    await hotel_page.wait_for_load_state("networkidle")
+                    await hotel_page.goto(url_hotel, wait_until="domcontentloaded", timeout=PAGE_LOAD_TIMEOUT)
+                    # networkidle trop long sur les fiches hôtel → domcontentloaded suffit pour extraire lat/lon/score
+                    #await hotel_page.wait_for_load_state("networkidle")
                     await save_html(page, city_name, hotel_name)
                     lat, lon, description, score = await scrap_hotel(hotel_page)
                 except Exception as e:
