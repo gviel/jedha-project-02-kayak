@@ -28,6 +28,20 @@ st.title("KAYAK — Top destinations météo en France")
 
 
 @st.cache_data
+def get_forecast_period() -> tuple[str, str] | None:
+    if DATABASE_URL:
+        try:
+            engine = create_engine(DATABASE_URL)
+            r = pd.read_sql("SELECT MIN(date) AS d_min, MAX(date) AS d_max FROM weather_scores_daily", engine)
+            if not r.empty and r["d_min"].iloc[0]:
+                fmt = lambda d: pd.to_datetime(d).strftime("%-d %B %Y")
+                return fmt(r["d_min"].iloc[0]), fmt(r["d_max"].iloc[0])
+        except Exception:
+            pass
+    return None
+
+
+@st.cache_data
 def get_extraction_date() -> str | None:
     if DATABASE_URL:
         try:
@@ -46,8 +60,10 @@ def get_extraction_date() -> str | None:
 
 
 _extraction_date = get_extraction_date()
-if _extraction_date:
-    st.caption(f"Données extraites le {_extraction_date}")
+_forecast_period = get_forecast_period()
+if _forecast_period:
+    st.caption(f"Prévisions météo du {_forecast_period[0]} au {_forecast_period[1]}"
+               + (f" — données extraites le {_extraction_date}" if _extraction_date else ""))
 else:
     st.caption("Date d'extraction inconnue — vérifiez le pipeline.")
 
