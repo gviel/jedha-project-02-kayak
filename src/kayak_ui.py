@@ -201,6 +201,26 @@ with col_rank:
         hide_index=True,
     )
 
+with st.expander("ℹ️ Comment est calculé le score météo ?"):
+    st.markdown("""
+**Source de données :** API [OpenWeatherMap](https://openweathermap.org/) — prévisions toutes les 3h sur J+1 à J+4,
+moyennées sur les créneaux diurnes (08h–20h) pour chaque ville.
+
+**Score sur 100** calculé à partir de 6 critères pondérés, inspirés de l'indice climatique touristique ICT (Mieczkowski) :
+
+| Critère | Poids |
+|---|---|
+| 🌡️ Température ressentie | 30 % |
+| 🌧️ Probabilité de précipitations | 30 % |
+| 💨 Vent | 15 % |
+| ☁️ Couverture nuageuse | 10 % |
+| 💧 Humidité | 10 % |
+| 🔵 Pression atmosphérique | 5 % |
+
+Le **score final** est la moyenne des scores journaliers sur 4 jours, avec une pénalité
+si la météo est trop instable (écart-type élevé).
+    """)
+
 # Selectbox synchronisé avec le clic — en dessous du bloc carte/classement
 cities_list = df["city_name"].tolist()
 max_city_len = max(len(c) for c in cities_list)

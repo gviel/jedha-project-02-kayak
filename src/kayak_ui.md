@@ -28,6 +28,7 @@ En l'absence de `DATABASE_URL`, l'UI tente un fallback sur les fichiers CSV loca
   - premier bloc :
     - carte 1 : l'importance du scoring représenté avec des ronds de taille plus ou moins importante et dégradé de couleur du rouge (mauvais score) au vert (meilleur score)
     - à droite de la carte : **tableau 1** — villes classées dans l'ordre de leur score météo (champs `city_name` et `score_final` visibles ; icone étoile jaune devant les 5 premières villes)
+    - en dessous de la carte 1 : section dépliable « Comment est calculé le score météo ? » indiquant la source de données (API OpenWeatherMap, prévisions J+1–J+4, créneaux 08h–20h) et les 6 critères pondérés (température 30 %, précipitations 30 %, vent 15 %, nuages 10 %, humidité 10 %, pression 5 %)
     - en dessous une combo box avec la liste des 10 premières villes classées par leur scoring; la taille de la combo box doit être dimensionnée sur la ville ayant le nom le plus long
   - deuxième bloc :
     - carte 2
