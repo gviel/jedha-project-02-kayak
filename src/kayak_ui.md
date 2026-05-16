@@ -10,6 +10,7 @@ Variables d'environnement lues par le script (via `.env` en local, ou secrets St
 |---|---|---|---|
 | `DATABASE_URL` | oui | — | URL de connexion PostgreSQL (`postgresql://user:pass@host:port/db`) |
 | `TOP_N_HOTELS` | non | `20` | Nombre max d'hôtels affichés par ville (LIMIT SQL + tableau UI) |
+| `HISTORY_DAYS` | non | `30` | Étendue en jours du graphique historique des scores météo |
 
 En l'absence de `DATABASE_URL`, l'UI tente un fallback sur les fichiers CSV locaux (`data/csv/`).
 
@@ -36,6 +37,6 @@ En l'absence de `DATABASE_URL`, l'UI tente un fallback sur les fichiers CSV loca
     - à droite de la carte 2, tableau avec la liste des 20 premiers hôtels correspondants à la carte avec les champs `hotel_name`, `score`,`url` vers Booking.com
   - troisième bloc (sous le deuxième) :
     - graphique linéaire (`score_day`) sur les 30 derniers jours pour la ville sélectionnée dans la carte 2
-    - données lues depuis `weather_scores_daily` filtrées sur `city_id` et `date_forecast >= CURRENT_DATE - 30 jours`
+    - données lues depuis `weather_scores_daily` filtrées sur `city_id` et `date_forecast >= CURRENT_DATE - HISTORY_DAYS jours`
     - fond coloré par zones de score : vert (80–100), jaune (60–80), orange (40–60), rouge (0–40)
     - si aucune donnée, afficher un message d'info invitant à attendre les prochaines extractions

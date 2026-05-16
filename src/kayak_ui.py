@@ -22,6 +22,7 @@ load_dotenv()
 DATA_DIR_CSV  = Path("data/csv")
 DATABASE_URL  = os.environ.get("DATABASE_URL")
 TOP_N_HOTELS  = int(os.environ.get("TOP_N_HOTELS", 20))
+HISTORY_DAYS  = int(os.environ.get("HISTORY_DAYS", 30))
 
 st.set_page_config(page_title="KAYAK - Meilleures destinations en France", layout="wide")
 st.title("KAYAK — Top destinations météo en France")
@@ -102,9 +103,9 @@ def load_score_history(city_id: str) -> pd.DataFrame:
             return pd.read_sql("""
                 SELECT date_forecast, score_day FROM weather_scores_daily
                 WHERE city_id = %(city_id)s
-                  AND date_forecast >= CURRENT_DATE - INTERVAL '30 days'
+                  AND date_forecast >= CURRENT_DATE - INTERVAL '1 day' * %(history_days)s
                 ORDER BY date_forecast
-            """, engine, params={"city_id": city_id})
+            """, engine, params={"city_id": city_id, "history_days": HISTORY_DAYS})
         except Exception:
             pass
     return pd.DataFrame()
@@ -310,7 +311,7 @@ else:
 # BLOC 3 : historique scores météo 30 jours
 
 st.divider()
-st.subheader(f"Historique scores météo — {selected_city} (30 derniers jours)")
+st.subheader(f"Historique scores météo — {selected_city} ({HISTORY_DAYS} derniers jours)")
 
 city_id_sel = df_scores.loc[df_scores["city_name"] == selected_city, "city_id"].iloc[0] \
     if not df_scores[df_scores["city_name"] == selected_city].empty else selected_city
