@@ -25,6 +25,8 @@ The full pipeline: geocode cities → fetch weather forecasts → score destinat
 | `test:` | ajout/modification de tests |
 | `chore:` | maintenance, config, outillage (ne modifie pas la logique applicative) |
 
+Ne pas ajouter de ligne `Co-Authored-By:` dans les messages de commit.
+
 ## Environment Setup
 - Python 3.13
 - Utilisation de conda : vérifie toujours qu'on est bien dans l'environnement conda `kayak`
@@ -144,4 +146,13 @@ streamlit run src/kayak_ui.py --server.headless true --server.port 8501
 **Fix appliqué** :
 - Page d'accueil et fiches hôtel : `wait_until="domcontentloaded"` + `wait_for_timeout(2000)`
 - Après soumission de recherche et après filtre Hôtels : `wait_for_selector('[data-testid="property-card"]')` — attend l'apparition des résultats plutôt que l'idle réseau
+
+### `scraper_hotels.py` — temps de scraping trop long dû aux visites de fiches hôtel
+La visite séquentielle de chaque fiche hôtel (1 page Playwright par hôtel) rendait le pipeline trop lent : 5 villes × 20 hôtels = 100 navigations, soit ~6h au total.
+
+**Cause** : Playwright ouvre une page par hôtel pour récupérer `lat/lon` (`data-atlas-latlng`), `description` et `score` depuis la fiche détail.
+
+**Fix appliqué** : Booking.com injecte tous ces champs dans un objet Apollo/GraphQL embarqué dans un `<script>` de la **page de listing** (identifiable par `"__typename":"BasicPropertyData"` + `"latitude"`). La fonction `parse_hotels_from_listing()` extrait `lat`, `lon`, `score`, `description`, `address` et `pageName` (→ URL) directement depuis ce JSON — sans visiter chaque fiche hôtel. Réduit les navigations de `1 + N_hotels` à `1` par ville.
+
+**Risque de fragilité** : la structure du JSON Apollo peut changer sans préavis lors d'une mise à jour du frontend Booking.com. En cas de rupture, revenir à l'ancienne approche (code conservé en commentaire dans `src/scraper_hotels.py`).
 
