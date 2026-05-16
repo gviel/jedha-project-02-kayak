@@ -103,7 +103,9 @@ python src/load_to_db.py        # 6. Chargement PostgreSQL
 streamlit run src/kayak_ui.py
 ```
 
-Ou en ligne sur [Streamlit Cloud](https://streamlit.io/cloud) — configurer `DATABASE_URL` dans les secrets de l'application.
+Ou en ligne sur [Streamlit Cloud](https://jedha-project-02-kayak-4kzhtcxgjjwncdsldqjdmq.streamlit.app/) et configurer dans les secrets de l'application
+  - `DATABASE_URL` : adresse et paramètres d'accès à la base de données (obligatoire)
+  - `TOP_N_HOTELS` : nombre d'hotels à afficher dans la carte et le tableau (optionnel, par défaut 20)
 
 ## Structure du projet
 
