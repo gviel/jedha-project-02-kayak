@@ -12,7 +12,8 @@ Le script `sql/schema.sql` crée les 5 tables (`cities`, `weather_scores`, `weat
 ## Configuration
 Variables d'environnement requises (dans `.env`) :
   - `DATABASE_URL` — URL de connexion PostgreSQL (AWS RDS ou Neon DB)
-  - `S3_BUCKET` - nom du bucket S3 utilisé
+  - `S3_BUCKET` — nom du bucket S3 utilisé
+  - `TOP_N_HOTELS` — nombre max d'hôtels chargés par ville depuis S3 (défaut : `20` ; appliqué via `LIMIT` SQL)
 
 ## Entrées
 - Bucket S3 : `S3_BUCKET`

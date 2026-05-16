@@ -3,10 +3,14 @@
  ## Role
  Phase scraping d'hotels sur Booking.com pour les villes souhaitées.
 
+## Configuration
+Variable d'environnement (dans `.env`) :
+  - `TOP_N_CITIES` — nombre de villes top à scraper (défaut : `5` si absent)
+
 ## Entrées
 - Fichier : `data/csv/cities.csv`
 - Site Booking.com : base URL `https://www.booking.com` (partie française en utilisant la page d'accueil `index.fr.html`)
-- Paramètre du script : TOP_N le nombre de villes au top (par défaut 5 si aucune valeur fournie)
+- Paramètre CLI optionnel : `N` (écrase `TOP_N_CITIES` si fourni)
 
 ## Sorties
 - Répertoires : `data/csv/<YYYYMMDD>/` (même structure que S3)
