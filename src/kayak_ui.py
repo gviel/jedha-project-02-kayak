@@ -239,7 +239,7 @@ else:
     if df_h.empty:
         st.info("Coordonnées géographiques manquantes pour les hôtels de cette ville.")
     else:
-        col_map2, col_hotels = st.columns([5, 2])
+        col_map2, col_hotels = st.columns([2, 1])
 
         # Centrer sur le meilleur hôtel
         best = df_h.loc[df_h["score"].idxmax()]
