@@ -104,5 +104,5 @@ Fichiers d'entrée lus : `data/json/weather/<yyyyMMdd>/weather-<city_name>-<yyyy
 Seuls les slots horaires **08:00:00 à 20:00:00** (champ `time`) sont retenus pour l'agrégation journalière (moyenne des slots diurnes).
 
 Fichiers de sortie générés dans `data/csv/<YYYYMMDD>/` :
-  - `weather-scores-daily-<YYYYMMDD>.csv` : colonnes `city_id`, `city_name`, `date`, `score_day` — une ligne par ville × jour
+  - `weather-scores-daily-<YYYYMMDD>.csv` : colonnes `city_id`, `city_name`, `date_forecast`, `score_day` — une ligne par ville × jour
   - `weather-scores-<YYYYMMDD>.csv` : colonnes `city_id`, `city_name`, `mean`, `median`, `min`, `max`, `std`, `score_final` — une ligne par ville, trié par `score_final` décroissant

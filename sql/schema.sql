@@ -37,11 +37,11 @@ CREATE TABLE IF NOT EXISTS weather_scores (
 -- Stratégie upsert ON CONFLICT (city_id, date).
 -- ============================================================
 CREATE TABLE IF NOT EXISTS weather_scores_daily (
-    city_id   VARCHAR  NOT NULL,
-    city_name VARCHAR  NOT NULL,
-    date      DATE     NOT NULL,
-    score_day FLOAT,
-    PRIMARY KEY (city_id, date)
+    city_id       VARCHAR  NOT NULL,
+    city_name     VARCHAR  NOT NULL,
+    date_forecast DATE     NOT NULL,
+    score_day     FLOAT,
+    PRIMARY KEY (city_id, date_forecast)
 );
 
 -- ============================================================
@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS hotels (
 -- TABLE : history
 -- Traçabilité des chargements (une ligne par table).
 -- ============================================================
+
 CREATE TABLE IF NOT EXISTS history (
     table_name VARCHAR PRIMARY KEY,
     load_date  VARCHAR

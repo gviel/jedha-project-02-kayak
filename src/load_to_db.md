@@ -25,7 +25,7 @@ script `src/load_to_db.py` - charge les fichier CSV du bucket S3 dans PostgreSQL
 
 1. lire les fichiers CSV depuis le bucket S3 via boto3/s3fs  :
    - `cities.csv` → table `cities` (colonnes : `city_id, city_name, lat, lon`)
-   - `weather-scores-daily-<YYYYMMDD>.csv` → table `weather_scores_daily` (colonnes : `city_id, city_name, date, score_day`)
+   - `weather-scores-daily-<YYYYMMDD>.csv` → table `weather_scores_daily` (colonnes : `city_id, city_name, date_forecast, score_day`)
    - `weather-scores-<YYYYMMDD>.csv` → table `weather_scores` (colonnes : `city_id, city_name, mean, median, min, max, std, score_final`)
    - `<YYYYMMDD>/hotels-<city_id>-<YYYYMMDD>.csv` → table `hotels` (colonnes : `city_id, city_name, hotel_name, lat, lon, description, score, url, load_date`)
 
@@ -33,7 +33,7 @@ script `src/load_to_db.py` - charge les fichier CSV du bucket S3 dans PostgreSQL
 
 3. stratégie d'insertion :
   - `if_exists='replace'` pour `cities` (données de référence stables) et `weather_scores` (agrégat 4j recalculé quotidiennement)
-  - stratégie upsert pour `weather_scores_daily` : clé = `(city_id, date)` — `ON CONFLICT (city_id, date) DO UPDATE SET score_day` — la table historise tous les scores jour par ville ; une contrainte PRIMARY KEY sur `(city_id, date)` est requise en base (à créer manuellement si migration depuis `if_exists='replace'`)
+  - stratégie upsert pour `weather_scores_daily` : clé = `(city_id, date_forecast)` — `ON CONFLICT (city_id, date_forecast) DO UPDATE SET score_day` — la table historise tous les scores jour par ville ; une contrainte PRIMARY KEY sur `(city_id, date_forecast)` est requise en base
   - stratégie upsert pour `hotels` : une seule ligne par hôtel (clé = `city_id` + `hotel_name`), load_date la plus récente conservée — réécriture complète de la table à chaque chargement
 
 4. table `history` (upsert après chaque chargement) :

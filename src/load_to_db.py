@@ -51,12 +51,12 @@ def list_s3_keys(prefix: str) -> list[str]:
 
 
 def upsert_weather_daily(table, conn, keys, data_iter):
-    """Méthode pandas to_sql : ON CONFLICT (city_id, date) DO UPDATE score_day."""
+    """Méthode pandas to_sql : ON CONFLICT (city_id, date_forecast) DO UPDATE score_day."""
     stmt = pg_insert(table.table).values(
         [dict(zip(keys, row)) for row in data_iter]
     )
     stmt = stmt.on_conflict_do_update(
-        index_elements=["city_id", "date"],
+        index_elements=["city_id", "date_forecast"],
         set_={"score_day": stmt.excluded.score_day},
     )
     conn.execute(stmt)
@@ -95,10 +95,13 @@ if __name__ == "__main__":
 
     # --- weather_scores_daily ---
     # Stratégie upsert : historisation des scores par ville × jour.
-    # Clé d'unicité = (city_id, date) — contrainte PRIMARY KEY requise en base.
+    # Clé d'unicité = (city_id, date_forecast) — contrainte PRIMARY KEY requise en base.
+    # Les CSV sources ont la colonne "date" (score_weather.py) → renommée à l'ingestion.
     daily_keys = [k for k in all_keys if re.search(r"weather-scores-daily-\d{8}\.csv$", k)]
     if daily_keys:
         df = read_s3_csv(daily_keys[-1])
+        if "date" in df.columns:
+            df = df.rename(columns={"date": "date_forecast"})
         df.to_sql("weather_scores_daily", engine, if_exists="append", index=False, method=upsert_weather_daily)
         update_history("weather_scores_daily", EXTRACTION_DATE)
         print(f"[OK] weather_scores_daily — {len(df)} rows upserted")

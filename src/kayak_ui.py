@@ -33,10 +33,10 @@ def get_forecast_period() -> tuple[str, str] | None:
         try:
             engine = create_engine(DATABASE_URL)
             r = pd.read_sql("""
-                SELECT MIN(date) AS d_min, MAX(date) AS d_max
+                SELECT MIN(date_forecast) AS d_min, MAX(date_forecast) AS d_max
                 FROM (
-                    SELECT DISTINCT date FROM weather_scores_daily
-                    ORDER BY date DESC LIMIT 4
+                    SELECT DISTINCT date_forecast FROM weather_scores_daily
+                    ORDER BY date_forecast DESC LIMIT 4
                 ) t
             """, engine)
             if not r.empty and r["d_min"].iloc[0]:
@@ -100,10 +100,10 @@ def load_score_history(city_id: str) -> pd.DataFrame:
         try:
             engine = create_engine(DATABASE_URL)
             return pd.read_sql("""
-                SELECT date, score_day FROM weather_scores_daily
+                SELECT date_forecast, score_day FROM weather_scores_daily
                 WHERE city_id = %(city_id)s
-                  AND date >= CURRENT_DATE - INTERVAL '30 days'
-                ORDER BY date
+                  AND date_forecast >= CURRENT_DATE - INTERVAL '30 days'
+                ORDER BY date_forecast
             """, engine, params={"city_id": city_id})
         except Exception:
             pass
@@ -320,13 +320,13 @@ df_hist = load_score_history(city_id_sel)
 if df_hist.empty:
     st.info("Aucun historique disponible — les données s'accumuleront au fil des extractions quotidiennes.")
 else:
-    df_hist["date"] = pd.to_datetime(df_hist["date"])
+    df_hist["date_forecast"] = pd.to_datetime(df_hist["date_forecast"])
     fig3 = px.line(
         df_hist,
-        x="date",
+        x="date_forecast",
         y="score_day",
         markers=True,
-        labels={"date": "Date", "score_day": "Score météo"},
+        labels={"date_forecast": "Date", "score_day": "Score météo"},
         color_discrete_sequence=["#2196F3"],
     )
     fig3.update_traces(line=dict(width=2), marker=dict(size=6))
