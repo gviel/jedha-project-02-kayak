@@ -1,0 +1,38 @@
+# Métadonnées git
+.git
+.gitignore
+
+# Configuration assistant IA
+.claude/
+
+# Documentation et specs (markdown + notebooks)
+**/*.md
+**/*.ipynb
+
+# Environnement conda (non utilisé dans Docker)
+env_kayak.yml
+
+# Secrets (injectés via --env-file à l'exécution)
+.env
+.env_template
+
+# Données (répertoire monté en volume ou recréé par le Dockerfile)
+data/
+
+# Initialisation SQL (opération manuelle avant premier lancement)
+sql/
+
+# Documentation, présentations, credentials (ne pas embarquer dans l'image)
+docs/
+
+# Outils et scripts locaux non exécutés par le pipeline
+tools/
+old/
+
+# Config IDE / Streamlit Cloud (inutiles dans le container)
+.vscode/
+.streamlit/
+
+# Scripts non exécutés par le pipeline
+src/kayak_ui.py
+src/rds_postgresql_full.py
