@@ -27,14 +27,19 @@ En l'absence de `DATABASE_URL`, l'UI tente un fallback sur les fichiers CSV loca
   - en sous-titre: indiquer que les scores météo sont pour les jour J+1 à J+4 (les 4 dates les plus récentes de `weather_scores_daily`) et les données extraites à J (date d'upload des données)
   - premier bloc :
     - carte 1 : l'importance du scoring représenté avec des ronds de taille plus ou moins importante et dégradé de couleur du rouge (mauvais score) au vert (meilleur score)
-    - à droite de la carte : mettre le tableau des villes classées dans l'ordre de leur score météo (avec juste les champs `city_name` et `mean` visibles; on mettra un icone de type 'étoile jaune' devant le city_name des 5 premières villes
+    - à droite de la carte : **tableau 1** — villes classées dans l'ordre de leur score météo (champs `city_name` et `score_final` visibles ; icone étoile jaune devant les 5 premières villes)
     - en dessous une combo box avec la liste des 10 premières villes classées par leur scoring; la taille de la combo box doit être dimensionnée sur la ville ayant le nom le plus long
   - deuxième bloc :
     - carte 2
       - affichage global avec niveau de zoom contenant tous les hotels (calcul bounding box) et centrée sur le meilleur hotel
       - de type openstreetmap qui montre tous les hotels d'une ville choisie par clic dans la carte précédente
-      - lorsque l'on clique sur un hotel (représenté par un icone), affichage de descriptif de l'hotel et son score
-    - à droite de la carte 2, tableau avec la liste des 20 premiers hôtels correspondants à la carte avec les champs `hotel_name`, `score`,`url` vers Booking.com
+      - tooltip au survol : nom de l'hôtel + score + adresse
+      - lorsque l'on clique sur un hotel (représenté par un icone), affichage du descriptif de l'hotel, son score et son adresse
+    - à droite de la carte 2, **tableau 2** — liste des `TOP_N_HOTELS` premiers hôtels avec les champs :
+      - `hotel_name` : affiché comme hyperlien vers la fiche Booking.com correspondante
+      - `score`
+      - `address`
+      - hauteur du tableau ajustée pour afficher exactement `TOP_N_HOTELS` lignes sans scroll
   - troisième bloc (sous le deuxième) :
     - graphique linéaire (`score_day`) sur les 30 derniers jours pour la ville sélectionnée dans la carte 2
     - données lues depuis `weather_scores_daily` filtrées sur `city_id` et `date_forecast >= CURRENT_DATE - HISTORY_DAYS jours`

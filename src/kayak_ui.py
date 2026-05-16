@@ -112,26 +112,18 @@ def load_score_history(city_id: str) -> pd.DataFrame:
 
 
 @st.cache_data
-def load_hotels(city: str) -> pd.DataFrame:
-    if DATABASE_URL:
-        try:
-            engine = create_engine(DATABASE_URL)
-            df = pd.read_sql(
-                f"SELECT * FROM hotels WHERE city_name = %(city)s ORDER BY load_date DESC, score DESC LIMIT {TOP_N_HOTELS}",
-                engine, params={"city": city},
-            )
-            if not df.empty:
-                return df
-        except Exception:
-            pass
-    # fallback CSV local
-    city_id = city.replace(" ", "_").replace("'", "_")
-    # files = sorted(DATA_DIR_CSV.glob(f"[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]/hotels-{city_id}-*.csv"))
-    # glob */*.csv puis filtre les répertoires dont le nom est exactement 8 chiffres
-    files = [f for f in sorted(DATA_DIR_CSV.glob(f"*/hotels-{city_id}-*.csv")) if re.match(r"\d{8}$", f.parent.name)]
-    if not files:
-        return pd.DataFrame()
-    return pd.read_csv(files[-1])
+def load_hotels(city: str) -> pd.DataFrame | None:
+    """Retourne None si DATABASE_URL absent ou erreur de connexion, DataFrame (éventuellement vide) sinon."""
+    if not DATABASE_URL:
+        return None
+    try:
+        engine = create_engine(DATABASE_URL)
+        return pd.read_sql(
+            f"SELECT * FROM hotels WHERE city_name = %(city)s ORDER BY load_date DESC, score DESC LIMIT {TOP_N_HOTELS}",
+            engine, params={"city": city},
+        )
+    except Exception:
+        return None
 
 
 # Chargement données
@@ -230,7 +222,9 @@ st.subheader(f"Hôtels à {selected_city}")
 
 df_hotels = load_hotels(selected_city)
 
-if df_hotels.empty:
+if df_hotels is None:
+    st.error("Erreur de connexion à la base de données — impossible de charger les hôtels.")
+elif df_hotels.empty:
     st.info(
         f"Aucun hôtel disponible pour **{selected_city}** "
         "— lancez d'abord `scraper_hotels.py`."
@@ -253,16 +247,17 @@ else:
         lon_min, lon_max = df_h["lon"].min(), df_h["lon"].max()
         lat_span = max(lat_max - lat_min, 0.001)
         lon_span = max(lon_max - lon_min, 0.001)
+        hotel_table_height = 35 * TOP_N_HOTELS + 38
+        map_height = max(520, hotel_table_height)
         # Zoom pour englober tous les hôtels :
         # Formule Mapbox : zoom = log2(viewport_px / 256 × 360° / span°)
         #   - 256 = taille d'une tuile de référence en pixels
-        #   - 900 / 520 = dimensions approx. du conteneur carte (px)
         #   - 360° / 180° = étendue totale lon / lat à zoom 0
         # On prend le min(zoom_lon, zoom_lat) pour garantir que les deux axes
         # sont visibles, puis -1 pour ajouter une marge de padding.
         zoom = max(1, min(round(min(
             math.log2(900 / 256 * 360 / lon_span),
-            math.log2(520 / 256 * 180 / lat_span),
+            math.log2(map_height / 256 * 180 / lat_span),
         )) - 1, 15))
 
         with col_map2:
@@ -270,15 +265,15 @@ else:
                 df_h,
                 lat="lat", lon="lon",
                 hover_name="hotel_name",
-                hover_data={"score": True, "lat": False, "lon": False},
+                hover_data={"score": True, "address": True, "lat": False, "lon": False},
                 size="score",
                 color="score",
                 color_continuous_scale="Blues",
                 zoom=zoom,
                 center={"lat": best["lat"], "lon": best["lon"]},
-                height=520,
+                height=map_height,
                 mapbox_style="open-street-map",
-                custom_data=["hotel_name", "score", "description", "url"],
+                custom_data=["hotel_name", "score", "description", "url", "address"],
             )
             fig2.update_traces(marker=dict(opacity=0.9, sizemin=8))
             fig2.update_layout(coloraxis_colorbar=dict(title="Score<br>Booking"), margin=dict(r=0))
@@ -286,13 +281,20 @@ else:
             event2 = st.plotly_chart(fig2, use_container_width=True, on_select="rerun", key="map2")
 
         with col_hotels:
-            st.markdown(f"**Top {TOP_N_HOTELS} hôtels**")
+            st.markdown(f"**Tableau 2 — Top {TOP_N_HOTELS} hôtels**")
+            # Colonne "Hôtel" = url#hotel_name — LinkColumn extrait le nom affiché via regex #(.+)$
+            df_tab2 = df_h.sort_values("score", ascending=False).head(TOP_N_HOTELS).copy()
+            df_tab2["Hôtel"] = df_tab2["url"].fillna("") + "#" + df_tab2["hotel_name"].fillna("")
             st.dataframe(
-                df_h[["hotel_name", "score", "url"]].sort_values("score", ascending=False),
+                df_tab2[["Hôtel", "score", "address"]],
                 use_container_width=True,
-                height=510,
+                height=hotel_table_height,
                 hide_index=True,
-                column_config={"url": st.column_config.LinkColumn("Lien Booking")},
+                column_config={
+                    "Hôtel": st.column_config.LinkColumn("Hôtel", display_text=r"#(.+)$"),
+                    "score": st.column_config.NumberColumn("Score"),
+                    "address": st.column_config.TextColumn("Adresse"),
+                },
             )
 
         # Détail hôtel sur clic — affiché sous les deux colonnes
@@ -301,9 +303,12 @@ else:
             cd = pt.get("customdata", [])
             if len(cd) >= 4:
                 h_name, h_score, h_desc, h_url = cd[0], cd[1], cd[2], cd[3]
+                h_addr = cd[4] if len(cd) >= 5 else None
                 with st.container(border=True):
                     st.markdown(f"### {h_name}")
                     st.markdown(f"**Score Booking :** {h_score}")
+                    if h_addr:
+                        st.markdown(f"**Adresse :** {h_addr}")
                     st.markdown(h_desc or "_Pas de description disponible._")
                     if h_url:
                         st.markdown(f"[Voir sur Booking.com]({h_url})")
