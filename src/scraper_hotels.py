@@ -4,6 +4,7 @@ import glob
 import logging
 import os
 import json
+import re
 from playwright.async_api import async_playwright
 from dotenv import load_dotenv
 from pathlib import Path
@@ -286,45 +287,101 @@ async def safe_click(page, locator_str: str, timeout: int = 25000):
 #     end_display = await page.locator("[data-testid='date-display-field-end']").inner_text()
 #     logger.info(f"Dates affichées dans le champ : {start_display} -> {end_display}")
 
-async def scrap_hotel_list(page):
-    hotels = {}
-    logger.info("Parse hotel list...")
-    await page.wait_for_selector('[data-testid="title-link"]', timeout=PAGE_LOAD_TIMEOUT)
-    links = await page.get_by_test_id("title-link").all()
-    #logger.info(type(links))
+# --- Ancienne approche : visite de chaque fiche hôtel ---
+# Remplacée par parse_hotels_from_listing() car le temps de scraping était trop long :
+# 5 villes × 20 hôtels = 100 navigations Playwright séquentielles (~6h de pipeline).
+# Conservé en commentaire en cas de rupture du JSON Apollo de Booking.com.
+#
+# async def scrap_hotel_list(page):
+#     hotels = {}
+#     logger.info("Parse hotel list...")
+#     await page.wait_for_selector('[data-testid="title-link"]', timeout=PAGE_LOAD_TIMEOUT)
+#     links = await page.get_by_test_id("title-link").all()
+#     for link in links:
+#         url_hotel = await link.get_attribute("href")
+#         title = link.get_by_test_id("title").first
+#         hotel_name = await title.all_text_contents()
+#         hotel_name = hotel_name[0]
+#         logger.info(f"Hotel={hotel_name} => {url_hotel}")
+#         hotels[hotel_name] = url_hotel
+#     return hotels
+#
+# async def scrap_hotel(hotel_page):
+#     # lat/lon depuis data-atlas-latlng sur la fiche hôtel
+#     await hotel_page.wait_for_selector('[data-testid="map-entry-point-desktop-wrapper"]', timeout=CLICK_TIMEOUT)
+#     divLoc = await hotel_page.get_by_test_id("map-entry-point-desktop-wrapper").all()
+#     loc = await divLoc[0].get_attribute("data-atlas-latlng")
+#     lat, lon = loc.split(",")
+#     # description depuis property-description
+#     await hotel_page.wait_for_selector('[data-testid="property-description"]', timeout=CLICK_TIMEOUT)
+#     description = await hotel_page.get_by_test_id("property-description").text_content()
+#     # score depuis review-score-component
+#     score = None
+#     try:
+#         await hotel_page.wait_for_selector('[data-testid="review-score-component"]', timeout=CLICK_TIMEOUT)
+#         mainDivScore = hotel_page.get_by_test_id("review-score-component").first
+#         divScore = mainDivScore.locator("div.f63b14ab7a.dff2e52086")
+#         scoreStr = await divScore.text_content()
+#         score = float(scoreStr.strip().replace(',', '.'))
+#     except Exception:
+#         logger.warning("Score non disponible pour cet hôtel")
+#     return (lat, lon, description, score)
+# --- Fin ancienne approche ---
 
-    for link in links:
-        url_hotel = await link.get_attribute("href")
-        title = link.get_by_test_id("title").first
-        hotel_name = await title.all_text_contents()
-        hotel_name = hotel_name[0]
-        logger.info(f"Hotel={hotel_name} => {url_hotel}")
-        hotels[hotel_name] = url_hotel
+
+def _decoder_unicode(s: str) -> str:
+    """Décode les séquences \\uXXXX laissées littéralement dans les chaînes JavaScript."""
+    return re.sub(r'\\u([0-9a-fA-F]{4})', lambda m: chr(int(m.group(1), 16)), s)
+
+
+def parse_hotels_from_listing(html: str, city_id: str, city_name: str) -> list[dict]:
+    """Extrait les données hôtels depuis le JSON Apollo/GraphQL embarqué dans la page de listing Booking.com.
+
+    Booking.com injecte les résultats dans un <script> sous forme de cache GraphQL.
+    Chaque hôtel est délimité par {"__typename":"SearchResultProperty"}.
+    Tous les champs nécessaires (lat, lon, score, description, address, url) sont présents
+    dans ce JSON — aucune visite de fiche hôtel individuelle n'est requise.
+    """
+    # Localiser le script contenant les données hôtels
+    scripts = re.findall(r'<script[^>]*>(.*?)</script>', html, re.DOTALL)
+    target = next(
+        (s for s in scripts if '"BasicPropertyData"' in s and '"latitude"' in s),
+        None,
+    )
+    if not target:
+        logger.warning(f"JSON Apollo non trouvé dans la page de listing pour {city_name}")
+        return []
+
+    # Découper en blocs par hôtel
+    hotel_blocks = re.split(r'\{"__typename":"SearchResultProperty"', target)
+    hotels = []
+    for block in hotel_blocks[1:]:
+        lat_m   = re.search(r'"latitude":([\d.]+)', block)
+        lon_m   = re.search(r'"longitude":([\d.]+)', block)
+        name_m  = re.search(r'"displayName":\{"__typename":"TextWithTranslationTag","text":"([^"]+)"', block)
+        score_m = re.search(r'"totalScore":([\d.]+)', block)
+        desc_m  = re.search(r'"description":\{"__typename":"TextWithTranslationTag","text":"([^"]+)"', block)
+        addr_m  = re.search(r'"address":"([^"]+)"', block)
+        page_m  = re.search(r'"pageName":"([^"]+)"', block)
+
+        if not (lat_m and lon_m and name_m and page_m):
+            logger.warning("Bloc hôtel incomplet (lat/lon/name/pageName manquant), ignoré")
+            continue
+
+        hotels.append({
+            "city_id":     city_id,
+            "city_name":   city_name,
+            "hotel_name":  _decoder_unicode(name_m.group(1)),
+            "lat":         float(lat_m.group(1)),
+            "lon":         float(lon_m.group(1)),
+            "description": _decoder_unicode(desc_m.group(1)) if desc_m else None,
+            "score":       float(score_m.group(1)) if score_m else None,
+            "url":         f"https://www.booking.com/hotel/fr/{page_m.group(1)}.fr.html",
+            "address":     _decoder_unicode(addr_m.group(1)) if addr_m else None,
+        })
+
+    logger.info(f"{len(hotels)} hôtels extraits pour {city_name}")
     return hotels
-
-async def scrap_hotel(hotel_page):
-    # scrap loc, description, score
-    await hotel_page.wait_for_selector('[data-testid="map-entry-point-desktop-wrapper"]', timeout=CLICK_TIMEOUT)
-    divLoc = await hotel_page.get_by_test_id("map-entry-point-desktop-wrapper").all()
-    loc = await divLoc[0].get_attribute("data-atlas-latlng")
-    lat, lon = loc.split(",")
-    logger.info(f"long={lon} lat={lat}")
-
-    await hotel_page.wait_for_selector('[data-testid="property-description"]', timeout=CLICK_TIMEOUT)
-    description = await hotel_page.get_by_test_id("property-description").text_content()
-    logger.info(f"desc={description[:200]}")
-
-    score = None
-    try:
-        await hotel_page.wait_for_selector('[data-testid="review-score-component"]', timeout=CLICK_TIMEOUT)
-        mainDivScore = hotel_page.get_by_test_id("review-score-component").first
-        divScore = mainDivScore.locator("div.f63b14ab7a.dff2e52086")
-        scoreStr = await divScore.text_content()
-        score = float(scoreStr.strip().replace(',', '.'))
-    except Exception:
-        logger.warning("Score non disponible pour cet hôtel")
-    logger.info(f"score={score}")
-    return (lat, lon, description, score)
 
 
 async def main(from_date: datetime, to_date: datetime, top_n: int = TOP_N):
@@ -426,36 +483,32 @@ async def main(from_date: datetime, to_date: datetime, top_n: int = TOP_N):
             await save_html(page, city_name)
             logger.info(f"--- OK page hotel sauvée pour {city_name}")
 
-            # parsing des noms d'hotel + url de la fiche
-            map_url_by_hotel = await scrap_hotel_list(page)
-            logger.info(f"--- OK liste des hotels scrapée pour {city_name}")
+            # Ancienne approche : visite de chaque fiche hôtel — remplacée car trop lente
+            # (1 navigation Playwright par hôtel → ~6h de pipeline pour 5 villes × 20 hôtels)
+            # En cas de rupture du JSON Apollo, décommenter ce bloc et commenter le bloc ci-dessous.
+            # map_url_by_hotel = await scrap_hotel_list(page)
+            # hotel_records = []
+            # for hotel_name in map_url_by_hotel.keys():
+            #     url_hotel = map_url_by_hotel[hotel_name]
+            #     hotel_page = await page.context.new_page()
+            #     try:
+            #         await hotel_page.goto(url_hotel, wait_until="domcontentloaded", timeout=PAGE_LOAD_TIMEOUT)
+            #         await save_html(page, city_name, hotel_name)
+            #         lat, lon, description, score = await scrap_hotel(hotel_page)
+            #     except Exception as e:
+            #         logger.warning(f"Skipping {hotel_name}: {e}")
+            #         await hotel_page.close()
+            #         continue
+            #     hotel_records.append({
+            #         "city_id": city_id, "city_name": city_name, "hotel_name": hotel_name,
+            #         "lat": lat, "lon": lon, "description": description,
+            #         "score": score, "url": url_hotel,
+            #     })
 
-            hotel_records = []
-            for hotel_name in map_url_by_hotel.keys():
-                # aller sur chaque page en ouvrant un nouvel onglet à chaque hotel
-                url_hotel = map_url_by_hotel[hotel_name]
-                hotel_page = await page.context.new_page()
-                try:
-                    await hotel_page.goto(url_hotel, wait_until="domcontentloaded", timeout=PAGE_LOAD_TIMEOUT)
-                    # networkidle trop long sur les fiches hôtel → domcontentloaded suffit pour extraire lat/lon/score
-                    #await hotel_page.wait_for_load_state("networkidle")
-                    await save_html(page, city_name, hotel_name)
-                    lat, lon, description, score = await scrap_hotel(hotel_page)
-                except Exception as e:
-                    logger.warning(f"Skipping {hotel_name}: {e}")
-                    await hotel_page.close()
-                    continue
-
-                hotel_records.append({
-                    "city_id":     city_id,
-                    "city_name":   city_name,
-                    "hotel_name":  hotel_name,
-                    "lat":         lat,
-                    "lon":         lon,
-                    "description": description,
-                    "score":       score,
-                    "url":         url_hotel,
-                })
+            # extraction directe depuis le JSON Apollo embarqué dans la page de listing
+            html_content = await page.content()
+            hotel_records = parse_hotels_from_listing(html_content, city_id, city_name)
+            logger.info(f"--- OK {len(hotel_records)} hôtels extraits pour {city_name}")
 
             # sauvegarde CSV par ville
             if hotel_records:

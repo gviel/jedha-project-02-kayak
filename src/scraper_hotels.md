@@ -15,8 +15,14 @@ Variable d'environnement (dans `.env`) :
 ## Sorties
 - Répertoires : `data/csv/<YYYYMMDD>/` (même structure que S3)
 - Fichiers : 1 fichier par ville `hotels-{city_id}-{yyyyMMdd}.csv` pour le jour J (`city_id` = nom sanitized, underscores)
-- Colonnes CSV : `city_id, city_name, hotel_name, lat, lon, description, score, url`
+- Colonnes CSV : `city_id, city_name, hotel_name, lat, lon, description, score, url, address`
 - Encodage : UTF-8
+
+## Stratégie d'extraction
+
+Booking.com injecte les résultats de recherche dans un objet Apollo/GraphQL embarqué dans un `<script>` de la page de listing. Chaque hôtel est délimité par `{"__typename":"SearchResultProperty"}` et contient tous les champs nécessaires (`lat`, `lon`, `score`, `description`, `address`, `pageName`).
+
+Cette approche élimine la visite de chaque fiche hôtel individuelle, ce qui réduit le nombre de navigations Playwright de `1 + N_hotels` à `1` par ville.
 
 ## Déroulement
 Les tâches avec playwright doivent être faites en async.
@@ -37,9 +43,5 @@ Les tâches avec playwright doivent être faites en async.
     6. cliquer à gauche + supprimer éventuelles popups
     7. appliquer le filtre case à cocher 'Hotels'
     8. sauver la page html pour debug (optionnel)
-    9. récupérer le nom de l'hotel et l'URL de la fiche de l'hotel
-    10. pour chaque hotel :
-        1. aller à la fiche de l'hotel
-        2. sauver la page html pour debug (optionel)
-        3. récupérer lat, lon, description et score
-        4. sauver les données dans un fichier CSV par ville (`hotels-{city_id}-{yyyyMMdd}.csv`) avec colonnes : `city_id, city_name, hotel_name, lat, lon, description, score, url`
+    9. parser le JSON Apollo embarqué dans le HTML (`parse_hotels_from_listing`) pour extraire `hotel_name`, `lat`, `lon`, `score`, `description`, `url`, `address`
+    10. sauver les données dans un fichier CSV par ville (`hotels-{city_id}-{yyyyMMdd}.csv`) avec colonnes : `city_id, city_name, hotel_name, lat, lon, description, score, url, address`

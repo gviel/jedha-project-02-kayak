@@ -50,15 +50,16 @@ CREATE TABLE IF NOT EXISTS weather_scores_daily (
 -- Stratégie upsert : clé (city_id, hotel_name), load_date la plus récente.
 -- ============================================================
 CREATE TABLE IF NOT EXISTS hotels (
-    city_id    VARCHAR  NOT NULL,
-    city_name  VARCHAR,
-    hotel_name VARCHAR  NOT NULL,
-    lat        FLOAT,
-    lon        FLOAT,
+    city_id     VARCHAR  NOT NULL,
+    city_name   VARCHAR,
+    hotel_name  VARCHAR  NOT NULL,
+    lat         FLOAT,
+    lon         FLOAT,
     description TEXT,
-    score      FLOAT,
-    url        VARCHAR,
-    load_date  VARCHAR,
+    score       FLOAT,
+    url         VARCHAR,
+    address     VARCHAR,
+    load_date   VARCHAR,
     PRIMARY KEY (city_id, hotel_name)
 );
 
