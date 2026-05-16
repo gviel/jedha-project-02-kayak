@@ -1,9 +1,12 @@
 #!/bin/bash
 # Création du bucket S3 'cscd-kayak-datalake' dans eu-west-3
 # Prérequis : credentials AWS valides dans .env ou dans ~/.aws/credentials
+# Usage : bash tools/create_bucket.sh  (depuis la racine du projet ou n'importe où)
 set -e
 
-source .env
+# Chemin absolu vers .env, indépendant du répertoire d'appel
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "${SCRIPT_DIR}/../.env"
 
 echo "Try to create ${S3_BUCKET} in region ${AWS_REGION}"
 
