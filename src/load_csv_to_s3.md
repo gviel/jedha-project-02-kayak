@@ -18,6 +18,7 @@ Variables d'environnement requises (dans `.env`) :
    - `AWS_REGION`
    - `S3_BUCKET`
    - `S3_PREFIX` (optionnel, défaut : `csv/`)
+   - `LOCAL_RETENTION_DAYS` (optionnel, défaut : `7`) — nombre de répertoires `data/csv/YYYYMMDD/` conservés localement après upload
 
 ## Déroulement
 1. lire les fichiers CSV produits par le pipeline dans `data/csv/` :
@@ -30,3 +31,8 @@ Variables d'environnement requises (dans `.env`) :
   - `cities.csv` → uploadé directement sous `{S3_PREFIX}cities.csv` (pas de sous-répertoire de date, fichier de référence)
   - fichiers datés → uploadés sous `{S3_PREFIX}<YYYYMMDD>/` (date extraite du nom de fichier via regex `\d{8}`)
   - préfixe configurable via `S3_PREFIX`
+
+3. rétention locale : après upload, purger les répertoires `data/csv/YYYYMMDD/` en excès
+  - conserver les `LOCAL_RETENTION_DAYS` répertoires les plus récents (tri par date décroissante)
+  - supprimer les répertoires au-delà de ce quota (`shutil.rmtree`)
+  - S3 n'est jamais modifié — tout l'historique reste dans le bucket

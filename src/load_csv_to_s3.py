@@ -6,6 +6,7 @@
 
 import os
 import re
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -19,6 +20,7 @@ AWS_SECRET_ACCESS_KEY = os.environ["AWS_SECRET_ACCESS_KEY"]
 AWS_REGION            = os.environ.get("AWS_REGION", "eu-west-3")
 S3_BUCKET             = os.environ["S3_BUCKET"]
 S3_PREFIX             = os.environ.get("S3_PREFIX", "csv/")
+LOCAL_RETENTION_DAYS  = int(os.environ.get("LOCAL_RETENTION_DAYS", "7"))
 
 DATA_DIR_CSV = Path("data/csv")
 
@@ -53,3 +55,16 @@ if __name__ == "__main__":
         print(f"[OK] s3://{S3_BUCKET}/{key}")
 
     print(f"Done — {len(files)} file(s) uploaded.")
+
+    # Rétention locale : conserver les LOCAL_RETENTION_DAYS répertoires datés les plus récents
+    dated_dirs = sorted(
+        [d for d in DATA_DIR_CSV.iterdir() if d.is_dir() and re.match(r"\d{8}$", d.name)],
+        reverse=True,  # plus récent en premier
+    )
+    removed = 0
+    for d in dated_dirs[LOCAL_RETENTION_DAYS:]:
+        shutil.rmtree(d)
+        print(f"[CLEANUP] {d} supprimé")
+        removed += 1
+    if removed:
+        print(f"[CLEANUP] {removed} répertoire(s) purgé(s) (rétention : {LOCAL_RETENTION_DAYS} derniers jours avec données)")
