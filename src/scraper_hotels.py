@@ -5,6 +5,8 @@ import logging
 import os
 import json
 import re
+import urllib.parse
+import urllib.request
 from playwright.async_api import async_playwright
 from dotenv import load_dotenv
 from pathlib import Path
@@ -334,6 +336,26 @@ def _decoder_unicode(s: str) -> str:
     return re.sub(r'\\u([0-9a-fA-F]{4})', lambda m: chr(int(m.group(1), 16)), s)
 
 
+_zip_cache: dict[str, str | None] = {}
+
+def get_zip_from_city(city_label: str) -> str | None:
+    """Retourne le code postal principal de la commune via geo.api.gouv.fr (cache en mémoire)."""
+    if city_label in _zip_cache:
+        return _zip_cache[city_label]
+    try:
+        url = ("https://geo.api.gouv.fr/communes"
+               f"?nom={urllib.parse.quote(city_label)}&fields=codesPostaux&boost=population&limit=1")
+        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read())
+        code = data[0]["codesPostaux"][0] if data and data[0].get("codesPostaux") else None
+    except Exception as e:
+        logger.warning(f"get_zip_from_city({city_label!r}) : {e}")
+        code = None
+    _zip_cache[city_label] = code
+    return code
+
+
 def parse_hotels_from_listing(html: str, city_id: str, city_name: str) -> list[dict]:
     """Extrait les données hôtels depuis le JSON Apollo/GraphQL embarqué dans la page de listing Booking.com.
 
@@ -363,15 +385,13 @@ def parse_hotels_from_listing(html: str, city_id: str, city_name: str) -> list[d
         desc_m  = re.search(r'"description":\{"__typename":"TextWithTranslationTag","text":"([^"]+)"', block)
         addr_m  = re.search(r'"address":"([^"]+)"', block)
         city_m  = re.search(r'"city":"([^"]+)"', block)
-        zip_m   = (re.search(r'"zipCode":"([^"]+)"', block)
-                   or re.search(r'"postalCode":"([^"]+)"', block)
-                   or re.search(r'"zip":"([^"]+)"', block))
         page_m  = re.search(r'"pageName":"([^"]+)"', block)
 
         if not (lat_m and lon_m and name_m and page_m):
             logger.warning("Bloc hôtel incomplet (lat/lon/name/pageName manquant), ignoré")
             continue
 
+        city_label = _decoder_unicode(city_m.group(1)) if city_m else None
         hotels.append({
             "city_id":     city_id,
             "city_name":   city_name,
@@ -381,9 +401,9 @@ def parse_hotels_from_listing(html: str, city_id: str, city_name: str) -> list[d
             "description": _decoder_unicode(desc_m.group(1)) if desc_m else None,
             "score":       float(score_m.group(1)) if score_m else None,
             "url":         f"https://www.booking.com/hotel/fr/{page_m.group(1)}.fr.html",
-            "address":     _decoder_unicode(addr_m.group(1))  if addr_m  else None,
-            "city_label":  _decoder_unicode(city_m.group(1))  if city_m  else None,
-            "zip_code":    _decoder_unicode(zip_m.group(1))   if zip_m   else None,
+            "address":     _decoder_unicode(addr_m.group(1)) if addr_m else None,
+            "city_label":  city_label,
+            "zip_code":    get_zip_from_city(city_label) if city_label else None,
         })
 
     logger.info(f"{len(hotels)} hôtels extraits pour {city_name}")
