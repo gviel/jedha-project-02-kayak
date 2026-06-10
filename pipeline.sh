@@ -2,7 +2,8 @@
 set -e
 cd /app
 
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] ── KAYAK pipeline start ──"
+PIPELINE_DATE=$(date '+%Y%m%d')
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] ── KAYAK pipeline start (date: $PIPELINE_DATE) ──"
 
 # Purge des fichiers HTML de debug et snapshots de plus de 4 jours
 # (le scraper hotels produit ~20 fichiers/ville/jour — sans purge le volume croît indéfiniment)
@@ -27,6 +28,6 @@ echo "[$(date '+%Y-%m-%d %H:%M:%S')] Step 5: upload CSVs to S3"
 python src/load_csv_to_s3.py
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Step 6: load S3 data to PostgreSQL"
-python src/load_to_db.py
+python src/load_to_db.py $PIPELINE_DATE
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] ── KAYAK pipeline done ──"
