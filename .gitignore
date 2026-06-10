@@ -2,6 +2,7 @@ scraper_playwright/
 docs/kayak_accessKeys.csv
 data/
 old/
+.mcp.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
