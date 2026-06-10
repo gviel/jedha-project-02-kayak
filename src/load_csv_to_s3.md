@@ -18,7 +18,7 @@ Variables d'environnement requises (dans `.env`) :
    - `AWS_REGION`
    - `S3_BUCKET`
    - `S3_PREFIX` (optionnel, défaut : `csv/`)
-   - `LOCAL_RETENTION_DAYS` (optionnel, défaut : `7`) — nombre de répertoires `data/csv/YYYYMMDD/` conservés localement après upload
+   - `LOCAL_RETENTION_DAYS` (optionnel, défaut : `30`) — nombre de répertoires `data/csv/YYYYMMDD/` conservés localement après upload
 
 ## Déroulement
 1. lire les fichiers CSV produits par le pipeline dans `data/csv/` :
