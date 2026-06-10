@@ -289,6 +289,7 @@ else:
                 lat="lat", lon="lon",
                 hover_name="hotel_name",
                 hover_data={"score": True, "full_address": True, "lat": False, "lon": False},
+                labels={"score": "Score Booking", "full_address": "Adresse"},
                 size="score",
                 color="score",
                 color_continuous_scale="Blues",
@@ -314,9 +315,9 @@ else:
                 height=hotel_table_height,
                 hide_index=True,
                 column_config={
-                    "Hôtel": st.column_config.LinkColumn("Hôtel", display_text=r"#(.+)$"),
-                    "score": st.column_config.NumberColumn("Score"),
-                    "full_address": st.column_config.TextColumn("Adresse"),
+                    "Hôtel": st.column_config.LinkColumn("Hôtel", display_text=r"#(.+)$", width="medium"),
+                    "score": st.column_config.NumberColumn("Score", width="small"),
+                    "full_address": st.column_config.TextColumn("Adresse", width="large"),
                 },
             )
 
