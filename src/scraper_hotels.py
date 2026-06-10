@@ -362,6 +362,10 @@ def parse_hotels_from_listing(html: str, city_id: str, city_name: str) -> list[d
         score_m = re.search(r'"totalScore":([\d.]+)', block)
         desc_m  = re.search(r'"description":\{"__typename":"TextWithTranslationTag","text":"([^"]+)"', block)
         addr_m  = re.search(r'"address":"([^"]+)"', block)
+        city_m  = re.search(r'"city":"([^"]+)"', block)
+        zip_m   = (re.search(r'"zipCode":"([^"]+)"', block)
+                   or re.search(r'"postalCode":"([^"]+)"', block)
+                   or re.search(r'"zip":"([^"]+)"', block))
         page_m  = re.search(r'"pageName":"([^"]+)"', block)
 
         if not (lat_m and lon_m and name_m and page_m):
@@ -377,7 +381,9 @@ def parse_hotels_from_listing(html: str, city_id: str, city_name: str) -> list[d
             "description": _decoder_unicode(desc_m.group(1)) if desc_m else None,
             "score":       float(score_m.group(1)) if score_m else None,
             "url":         f"https://www.booking.com/hotel/fr/{page_m.group(1)}.fr.html",
-            "address":     _decoder_unicode(addr_m.group(1)) if addr_m else None,
+            "address":     _decoder_unicode(addr_m.group(1))  if addr_m  else None,
+            "city_label":  _decoder_unicode(city_m.group(1))  if city_m  else None,
+            "zip_code":    _decoder_unicode(zip_m.group(1))   if zip_m   else None,
         })
 
     logger.info(f"{len(hotels)} hôtels extraits pour {city_name}")
@@ -446,10 +452,29 @@ async def main(from_date: datetime, to_date: datetime, top_n: int = TOP_N):
             await search_box.type(city_name, delay=500)
 
             # on attend l'apparition de la liste de proposition et on clique sur la première suggestion
-            #await page.wait_for_selector("li#autocomplete-result-0 div[role='button']", timeout=CLICK_TIMEOUT)
-            #first_suggestion = page.locator("li#autocomplete-result-0 div[role='button']")
-            #await first_suggestion.click(timeout=CLICK_TIMEOUT)
-            await safe_click(page, "li#autocomplete-result-0 div[role='button']", CLICK_TIMEOUT)
+            # Plusieurs sélecteurs testés en cascade — le HTML Booking.com change régulièrement
+            _AC_SELECTORS = [
+                "li#autocomplete-result-0 div[role='button']",
+                "[data-testid='autocomplete-result']:first-child",
+                "[id^='autocomplete-result-'] div[role='button']",
+                "ul[role='listbox'] li:first-child",
+            ]
+            _ac_selected = False
+            for _ac_sel in _AC_SELECTORS:
+                try:
+                    await page.wait_for_selector(_ac_sel, timeout=6000)
+                    await page.locator(_ac_sel).first.click(timeout=5000)
+                    logger.info(f"Autocomplete sélectionné via: {_ac_sel}")
+                    _ac_selected = True
+                    break
+                except Exception:
+                    pass
+            if not _ac_selected:
+                logger.warning("Autocomplete non trouvé — fallback clavier ArrowDown+Enter")
+                await save_html(page, f"autocomplete_debug_{city_name}")
+                await search_box.press("ArrowDown")
+                await page.wait_for_timeout(800)
+                await search_box.press("Enter")
             await page.wait_for_timeout(REFRESH_TIMEOUT)
 
             value = await search_box.input_value()

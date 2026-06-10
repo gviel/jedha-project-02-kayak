@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS hotels (
     score       FLOAT,
     url         VARCHAR,
     address     VARCHAR,
+    zip_code    VARCHAR,
+    city_label  VARCHAR,
     load_date   VARCHAR,
     PRIMARY KEY (city_id, hotel_name)
 );

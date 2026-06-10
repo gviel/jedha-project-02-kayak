@@ -15,12 +15,12 @@ Variable d'environnement (dans `.env`) :
 ## Sorties
 - Répertoires : `data/csv/<YYYYMMDD>/` (même structure que S3)
 - Fichiers : 1 fichier par ville `hotels-{city_id}-{yyyyMMdd}.csv` pour le jour J (`city_id` = nom sanitized, underscores)
-- Colonnes CSV : `city_id, city_name, hotel_name, lat, lon, description, score, url, address`
+- Colonnes CSV : `city_id, city_name, hotel_name, lat, lon, description, score, url, address, city_label, zip_code`
 - Encodage : UTF-8
 
 ## Stratégie d'extraction
 
-Booking.com injecte les résultats de recherche dans un objet Apollo/GraphQL embarqué dans un `<script>` de la page de listing. Chaque hôtel est délimité par `{"__typename":"SearchResultProperty"}` et contient tous les champs nécessaires (`lat`, `lon`, `score`, `description`, `address`, `pageName`).
+Booking.com injecte les résultats de recherche dans un objet Apollo/GraphQL embarqué dans un `<script>` de la page de listing. Chaque hôtel est délimité par `{"__typename":"SearchResultProperty"}` et contient tous les champs nécessaires (`lat`, `lon`, `score`, `description`, `address`, `city`, `pageName`). Le champ `zipCode`/`postalCode` est tenté en fallback (présence incertaine selon la version du JSON Apollo).
 
 Cette approche élimine la visite de chaque fiche hôtel individuelle, ce qui réduit le nombre de navigations Playwright de `1 + N_hotels` à `1` par ville.
 

@@ -255,6 +255,9 @@ else:
     df_h["lon"]   = pd.to_numeric(df_h["lon"],   errors="coerce")
     df_h["score"] = pd.to_numeric(df_h["score"], errors="coerce")
     df_h = df_h.dropna(subset=["lat", "lon", "score"])
+    zip_part = (df_h.get("zip_code", pd.Series("", index=df_h.index)).fillna("") + " " +
+                df_h.get("city_label", pd.Series("", index=df_h.index)).fillna("")).str.strip()
+    df_h["full_address"] = (df_h["address"].fillna("") + ", " + zip_part).str.strip(", ")
 
     if df_h.empty:
         st.info("Coordonnées géographiques manquantes pour les hôtels de cette ville.")
@@ -285,7 +288,7 @@ else:
                 df_h,
                 lat="lat", lon="lon",
                 hover_name="hotel_name",
-                hover_data={"score": True, "address": True, "lat": False, "lon": False},
+                hover_data={"score": True, "full_address": True, "lat": False, "lon": False},
                 size="score",
                 color="score",
                 color_continuous_scale="Blues",
@@ -293,7 +296,7 @@ else:
                 center={"lat": best["lat"], "lon": best["lon"]},
                 height=map_height,
                 mapbox_style="open-street-map",
-                custom_data=["hotel_name", "score", "description", "url", "address"],
+                custom_data=["hotel_name", "score", "description", "url", "full_address"],
             )
             fig2.update_traces(marker=dict(opacity=0.9, sizemin=8))
             fig2.update_layout(coloraxis_colorbar=dict(title="Score<br>Booking"), margin=dict(r=0))
@@ -306,14 +309,14 @@ else:
             df_tab2 = df_h.sort_values("score", ascending=False).head(TOP_N_HOTELS).copy()
             df_tab2["Hôtel"] = df_tab2["url"].fillna("") + "#" + df_tab2["hotel_name"].fillna("")
             st.dataframe(
-                df_tab2[["Hôtel", "score", "address"]],
+                df_tab2[["Hôtel", "score", "full_address"]],
                 use_container_width=True,
                 height=hotel_table_height,
                 hide_index=True,
                 column_config={
                     "Hôtel": st.column_config.LinkColumn("Hôtel", display_text=r"#(.+)$"),
                     "score": st.column_config.NumberColumn("Score"),
-                    "address": st.column_config.TextColumn("Adresse"),
+                    "full_address": st.column_config.TextColumn("Adresse"),
                 },
             )
 

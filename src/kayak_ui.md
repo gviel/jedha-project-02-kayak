@@ -34,12 +34,12 @@ En l'absence de `DATABASE_URL`, l'UI tente un fallback sur les fichiers CSV loca
     - carte 2
       - affichage global avec niveau de zoom contenant tous les hotels (calcul bounding box) et centrée sur le meilleur hotel
       - de type openstreetmap qui montre tous les hotels d'une ville choisie par clic dans la carte précédente
-      - tooltip au survol : nom de l'hôtel + score + adresse
-      - lorsque l'on clique sur un hotel (représenté par un icone), affichage du descriptif de l'hotel, son score et son adresse
+      - tooltip au survol : nom de l'hôtel + score + adresse complète (`full_address` = `address` + `zip_code` + `city_label`)
+      - lorsque l'on clique sur un hotel (représenté par un icone), affichage du descriptif de l'hotel, son score et son adresse complète
     - à droite de la carte 2, **tableau 2** — liste des `TOP_N_HOTELS` premiers hôtels avec les champs :
       - `hotel_name` : affiché comme hyperlien vers la fiche Booking.com correspondante
       - `score`
-      - `address`
+      - `full_address` (adresse complète = rue + code postal + ville)
       - hauteur du tableau ajustée pour afficher exactement `TOP_N_HOTELS` lignes sans scroll
   - troisième bloc (sous le deuxième) :
     - graphique linéaire (`score_day`) sur les 30 derniers jours pour la ville sélectionnée dans la carte 2
