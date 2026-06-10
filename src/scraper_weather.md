@@ -42,4 +42,4 @@ On transformera la réponse JSON obtenue de l'API OWM pour la ville avec les spe
 
 ### 3. Sauvegarde
 J étant la date de l'extraction, le résultat de la transformation GLOM sera sauvé dans 4 fichiers différents avec le pattern `data/json/weather/<yyyyMMdd>/weather-<city_name>-<yyyyMMdd>.json` avec yyyyMMdd pouvant prendre les valeurs J+1, J+2, J+3 et J+4.
-Si le fichier existe déjà pour un des jours donnés, on n'envoie pas la requete et on ne le sauve pas et on regarder le jour suivant.
+Les fichiers existants sont toujours écrasés — pas de cache. Les prévisions OWM étant mises à jour quotidiennement, un fichier existant pour J+x (créé lors d'une exécution précédente) peut être obsolète et doit être remplacé.

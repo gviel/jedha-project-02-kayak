@@ -98,12 +98,6 @@ for _, row in df_cities.iterrows():
         print(f"[SKIP] {name}: no coordinates")
         continue
 
-    missing_days = [(iso, fd) for iso, fd in FORECAST_DAYS
-                    if not os.path.exists(weather_day_path(name, fd))]
-    if not missing_days:
-        print(f"[CACHE] {name}")
-        continue
-
     raw = fetch_forecast(float(lat), float(lon))
     if raw is None:
         print(f"[FAIL] {name}")
@@ -112,13 +106,15 @@ for _, row in df_cities.iterrows():
 
     all_slots = glom(raw.get("list", []), [GLOM_SPEC])
 
-    for iso_date, file_date in missing_days:
+    saved = 0
+    for iso_date, file_date in FORECAST_DAYS:
         day_slots = [s for s in all_slots if s["date"] == iso_date]
         if day_slots:
             with open(weather_day_path(name, file_date), "w", encoding="utf-8") as f:
                 json.dump(day_slots, f, ensure_ascii=False, indent=2)
+            saved += 1
 
-    print(f"[OK] {name}: {len(missing_days)} day(s) saved")
+    print(f"[OK] {name}: {saved} day(s) saved")
     time.sleep(1.0)  # free tier: 60 req/min
 
 print("Done.")
