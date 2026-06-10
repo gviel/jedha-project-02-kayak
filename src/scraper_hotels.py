@@ -339,16 +339,44 @@ def _decoder_unicode(s: str) -> str:
 _zip_cache: dict[str, str | None] = {}
 
 def get_zip_from_city(city_label: str) -> str | None:
-    """Retourne le code postal principal de la commune via geo.api.gouv.fr (cache en mémoire)."""
+    """Retourne le code postal principal de la commune via geo.api.gouv.fr (cache en mémoire).
+
+    Fallback arrondissement : si la recherche directe échoue et que city_label ressemble à
+    "Lyon-5E-Arrondissement", retente avec "Lyon 5" (format reconnu par l'API).
+    """
     if city_label in _zip_cache:
         return _zip_cache[city_label]
-    try:
+
+    def _query(name: str) -> str | None:
         url = ("https://geo.api.gouv.fr/communes"
-               f"?nom={urllib.parse.quote(city_label)}&fields=codesPostaux&boost=population&limit=1")
+               f"?nom={urllib.parse.quote(name)}&fields=codesPostaux&boost=population&limit=1")
         req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
         with urllib.request.urlopen(req, timeout=5) as resp:
             data = json.loads(resp.read())
-        code = data[0]["codesPostaux"][0] if data and data[0].get("codesPostaux") else None
+        return data[0]["codesPostaux"][0] if data and data[0].get("codesPostaux") else None
+
+    try:
+        code = _query(city_label)
+        if code is None:
+            # Fallback arrondissement : "Lyon-5E-Arrondissement" → cherche parmi les
+            # arrondissements de Lyon celui dont le nom contient "5"
+            m = re.match(r'^(.+?)-(\d+)[A-Za-z]+-Arrondissement$', city_label, re.IGNORECASE)
+            if m:
+                city = m.group(1).replace('-', ' ')
+                num  = int(m.group(2))
+                url  = ("https://geo.api.gouv.fr/communes"
+                        f"?nom={urllib.parse.quote(city)}&fields=nom,codesPostaux"
+                        f"&limit=50&type=arrondissement-municipal")
+                req  = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    arr_data = json.loads(resp.read())
+                for entry in arr_data:
+                    if re.search(rf'\b{num}[a-z]*\b', entry.get("nom", ""), re.IGNORECASE):
+                        codes = entry.get("codesPostaux", [])
+                        if codes:
+                            code = codes[0]
+                            logger.info(f"get_zip_from_city: arrondissement {city_label!r} → {entry['nom']} → {code}")
+                            break
     except Exception as e:
         logger.warning(f"get_zip_from_city({city_label!r}) : {e}")
         code = None
