@@ -36,9 +36,9 @@ s3 = boto3.client(
 engine = create_engine(DATABASE_URL)
 
 
-def read_s3_csv(key: str) -> pd.DataFrame:
+def read_s3_csv(key: str, **kwargs) -> pd.DataFrame:
     obj = s3.get_object(Bucket=S3_BUCKET, Key=key)
-    return pd.read_csv(io.BytesIO(obj["Body"].read()))
+    return pd.read_csv(io.BytesIO(obj["Body"].read()), **kwargs)
 
 
 def list_s3_keys(prefix: str) -> list[str]:
@@ -127,11 +127,12 @@ if __name__ == "__main__":
         #   1. Lire les nouveaux fichiers S3 (load_date extraite du nom de fichier)
         frames = []
         for k in hotel_keys:
-            df = read_s3_csv(k)
-            # zip_code lu en float64 par pandas quand la colonne contient des vides → forcer str
+            # dtype str sur zip_code : préserve les zéros initiaux (ex: "06120" sinon → float 6120.0)
+            df = read_s3_csv(k, dtype={"zip_code": str})
             if "zip_code" in df.columns:
+                # "nan" possible si pandas convertit NaN en str avec dtype=str
                 df["zip_code"] = df["zip_code"].apply(
-                    lambda x: None if pd.isna(x) else re.sub(r"\.0$", "", str(x))
+                    lambda x: None if (pd.isna(x) or str(x).lower() == "nan") else str(x)
                 )
             m = re.search(r"-(\d{8})\.csv$", k)
             df["load_date"] = m.group(1) if m else EXTRACTION_DATE

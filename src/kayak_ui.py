@@ -255,10 +255,13 @@ else:
     df_h["lon"]   = pd.to_numeric(df_h["lon"],   errors="coerce")
     df_h["score"] = pd.to_numeric(df_h["score"], errors="coerce")
     df_h = df_h.dropna(subset=["lat", "lon", "score"])
-    # zip_code peut encore être float64 si la donnée en base n'a pas été nettoyée
-    zip_col = df_h.get("zip_code", pd.Series("", index=df_h.index)).apply(
-        lambda x: "" if pd.isna(x) else re.sub(r"\.0$", "", str(x))
-    )
+    # zip_code : nettoyage float64 résiduel + padding zéro gauche (codes postaux français = 5 chiffres)
+    def _fmt_zip(x) -> str:
+        if pd.isna(x) or str(x).lower() == "nan":
+            return ""
+        s = re.sub(r"\.0$", "", str(x).strip())
+        return s.zfill(5) if s.isdigit() and len(s) <= 5 else s
+    zip_col = df_h.get("zip_code", pd.Series("", index=df_h.index)).apply(_fmt_zip)
     city_col = df_h.get("city_label", pd.Series("", index=df_h.index)).fillna("")
     zip_part = (zip_col + " " + city_col).str.strip()
     # Nettoyer les virgules en fin d'adresse avant l'assemblage
