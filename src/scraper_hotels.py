@@ -338,6 +338,22 @@ def _decoder_unicode(s: str) -> str:
 
 _zip_cache: dict[str, str | None] = {}
 
+_CHAR_NORMALIZE = str.maketrans({
+    '’': "'",  # RIGHT SINGLE QUOTATION MARK
+    '‘': "'",  # LEFT SINGLE QUOTATION MARK
+    '‚': "'",  # SINGLE LOW-9 QUOTATION MARK
+    '`': "'",  # GRAVE ACCENT
+    '–': "-",  # EN DASH
+    '—': "-",  # EM DASH
+    ' ': " ",  # NO-BREAK SPACE
+    ' ': " ",  # NARROW NO-BREAK SPACE
+})
+
+def _normalize_city(name: str) -> str:
+    """Normalise les caractères typographiques pour les API (apostrophes, tirets, espaces)."""
+    return name.translate(_CHAR_NORMALIZE).strip()
+
+
 def get_zip_from_city(city_label: str) -> str | None:
     """Retourne le code postal principal de la commune.
 
@@ -348,6 +364,8 @@ def get_zip_from_city(city_label: str) -> str | None:
     """
     if city_label in _zip_cache:
         return _zip_cache[city_label]
+
+    city_label_norm = _normalize_city(city_label)
 
     def _query_geo(name: str) -> str | None:
         url = ("https://geo.api.gouv.fr/communes"
@@ -366,11 +384,11 @@ def get_zip_from_city(city_label: str) -> str | None:
         return data[0].get("address", {}).get("postcode") if data else None
 
     try:
-        code = _query_geo(city_label)
+        code = _query_geo(city_label_norm)
         if code is None:
             # Fallback arrondissement : "Lyon-5E-Arrondissement" → cherche parmi les
             # arrondissements de Lyon celui dont le nom contient "5"
-            m = re.match(r'^(.+?)-(\d+)[A-Za-z]+-Arrondissement$', city_label, re.IGNORECASE)
+            m = re.match(r'^(.+?)-(\d+)[A-Za-z]+-Arrondissement$', city_label_norm, re.IGNORECASE)
             if m:
                 city = m.group(1).replace('-', ' ')
                 num  = int(m.group(2))
@@ -389,7 +407,7 @@ def get_zip_from_city(city_label: str) -> str | None:
                             break
         if code is None:
             # Fallback Nominatim : lieux-dits / stations non connus de l'INSEE (ex: "Val Thorens")
-            code = _query_nominatim(city_label)
+            code = _query_nominatim(city_label_norm)
             if code:
                 logger.info(f"get_zip_from_city: Nominatim fallback {city_label!r} → {code}")
     except Exception as e:
