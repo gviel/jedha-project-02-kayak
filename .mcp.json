@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "neon": {
+      "command": "bash",
+      "args": ["/data/JEDHA/Project_02_Kayak/tools/mcp_neon.sh"]
+    }
+  }
+}
