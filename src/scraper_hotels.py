@@ -339,15 +339,17 @@ def _decoder_unicode(s: str) -> str:
 _zip_cache: dict[str, str | None] = {}
 
 def get_zip_from_city(city_label: str) -> str | None:
-    """Retourne le code postal principal de la commune via geo.api.gouv.fr (cache en mémoire).
+    """Retourne le code postal principal de la commune.
 
-    Fallback arrondissement : si la recherche directe échoue et que city_label ressemble à
-    "Lyon-5E-Arrondissement", retente avec "Lyon 5" (format reconnu par l'API).
+    Stratégie en cascade :
+    1. geo.api.gouv.fr (communes officielles INSEE)
+    2. Fallback arrondissement : "Lyon-5E-Arrondissement" → type=arrondissement-municipal
+    3. Fallback Nominatim : lieux-dits, stations, hameaux non répertoriés par INSEE
     """
     if city_label in _zip_cache:
         return _zip_cache[city_label]
 
-    def _query(name: str) -> str | None:
+    def _query_geo(name: str) -> str | None:
         url = ("https://geo.api.gouv.fr/communes"
                f"?nom={urllib.parse.quote(name)}&fields=codesPostaux&boost=population&limit=1")
         req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
@@ -355,8 +357,16 @@ def get_zip_from_city(city_label: str) -> str | None:
             data = json.loads(resp.read())
         return data[0]["codesPostaux"][0] if data and data[0].get("codesPostaux") else None
 
+    def _query_nominatim(name: str) -> str | None:
+        url = ("https://nominatim.openstreetmap.org/search"
+               f"?q={urllib.parse.quote(name)}&countrycodes=fr&addressdetails=1&format=json&limit=1")
+        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read())
+        return data[0].get("address", {}).get("postcode") if data else None
+
     try:
-        code = _query(city_label)
+        code = _query_geo(city_label)
         if code is None:
             # Fallback arrondissement : "Lyon-5E-Arrondissement" → cherche parmi les
             # arrondissements de Lyon celui dont le nom contient "5"
@@ -377,6 +387,11 @@ def get_zip_from_city(city_label: str) -> str | None:
                             code = codes[0]
                             logger.info(f"get_zip_from_city: arrondissement {city_label!r} → {entry['nom']} → {code}")
                             break
+        if code is None:
+            # Fallback Nominatim : lieux-dits / stations non connus de l'INSEE (ex: "Val Thorens")
+            code = _query_nominatim(city_label)
+            if code:
+                logger.info(f"get_zip_from_city: Nominatim fallback {city_label!r} → {code}")
     except Exception as e:
         logger.warning(f"get_zip_from_city({city_label!r}) : {e}")
         code = None
