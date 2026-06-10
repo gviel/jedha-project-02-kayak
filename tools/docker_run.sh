@@ -18,6 +18,7 @@ echo ""
 echo "[3/3] Lancement du container 'kayak'..."
 docker run -d \
     --name kayak \
+    --restart unless-stopped \
     --env-file "${PROJECT_DIR}/.env" \
     -v "${PROJECT_DIR}/data:/app/data" \
     kayak
