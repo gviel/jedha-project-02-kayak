@@ -255,9 +255,17 @@ else:
     df_h["lon"]   = pd.to_numeric(df_h["lon"],   errors="coerce")
     df_h["score"] = pd.to_numeric(df_h["score"], errors="coerce")
     df_h = df_h.dropna(subset=["lat", "lon", "score"])
-    zip_part = (df_h.get("zip_code", pd.Series("", index=df_h.index)).fillna("") + " " +
-                df_h.get("city_label", pd.Series("", index=df_h.index)).fillna("")).str.strip()
-    df_h["full_address"] = (df_h["address"].fillna("") + ", " + zip_part).str.strip(", ")
+    # zip_code peut encore être float64 si la donnée en base n'a pas été nettoyée
+    zip_col = df_h.get("zip_code", pd.Series("", index=df_h.index)).apply(
+        lambda x: "" if pd.isna(x) else re.sub(r"\.0$", "", str(x))
+    )
+    city_col = df_h.get("city_label", pd.Series("", index=df_h.index)).fillna("")
+    zip_part = (zip_col + " " + city_col).str.strip()
+    # Nettoyer les virgules en fin d'adresse avant l'assemblage
+    addr_clean = df_h["address"].fillna("").str.strip().str.rstrip(",").str.strip()
+    df_h["full_address"] = (
+        (addr_clean + ", " + zip_part).str.strip(", ").str.replace(r",\s*,+", ", ", regex=True)
+    )
 
     if df_h.empty:
         st.info("Coordonnées géographiques manquantes pour les hôtels de cette ville.")
@@ -288,8 +296,7 @@ else:
                 df_h,
                 lat="lat", lon="lon",
                 hover_name="hotel_name",
-                hover_data={"score": True, "full_address": True, "lat": False, "lon": False},
-                labels={"score": "Score Booking", "full_address": "Adresse"},
+                hover_data={"lat": False, "lon": False},
                 size="score",
                 color="score",
                 color_continuous_scale="Blues",
@@ -299,7 +306,15 @@ else:
                 mapbox_style="open-street-map",
                 custom_data=["hotel_name", "score", "description", "url", "full_address"],
             )
-            fig2.update_traces(marker=dict(opacity=0.9, sizemin=8))
+            fig2.update_traces(
+                marker=dict(opacity=0.9, sizemin=8),
+                hovertemplate=(
+                    "<b>%{hovertext}</b><br>"
+                    "%{customdata[4]}<br>"
+                    "⭐ %{customdata[1]}"
+                    "<extra></extra>"
+                ),
+            )
             fig2.update_layout(coloraxis_colorbar=dict(title="Score<br>Booking"), margin=dict(r=0))
 
             event2 = st.plotly_chart(fig2, use_container_width=True, on_select="rerun", key="map2")
