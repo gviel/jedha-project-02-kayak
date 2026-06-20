@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS weather_scores_daily (
 -- ============================================================
 -- TABLE : hotels
 -- Hôtels scrapés sur Booking.com (top-N villes).
--- Stratégie upsert : clé (city_id, hotel_name), load_date la plus récente.
+-- Stratégie merge+replace : déduplication Python sur (city_id, hotel_name), réécriture complète.
 -- ============================================================
 CREATE TABLE IF NOT EXISTS hotels (
     city_id     VARCHAR  NOT NULL,

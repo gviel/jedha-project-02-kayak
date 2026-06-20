@@ -1,8 +1,10 @@
-scraper_playwright/
 docs/kayak_accessKeys.csv
+docs/presentation/templates/Prepa-Demoday-ELEVES_2.pdf
+docs/presentation/templates/TEMPLATE_SLIDES-ENGLISH.pptx
 data/
 old/
 .mcp.json
+.claude/scheduled_tasks.lock
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -213,4 +215,3 @@ marimo/_lsp/
 __marimo__/
 .vscode
 .devcontainer/
-.claude/scheduled_tasks.lock

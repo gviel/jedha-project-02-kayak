@@ -51,15 +51,34 @@ Variables requises dans `.env` :
 | `S3_BUCKET` | Nom du bucket S3 |
 | `DATABASE_URL` | URL PostgreSQL (`postgresql://user:pass@host:port/db`) |
 
+Variables optionnelles (valeur par défaut indiquée) :
+
+| Variable | Défaut | Description |
+|---|---|---|
+| `S3_PREFIX` | `csv/` | Préfixe des clés S3 |
+| `TOP_N_CITIES` | `5` | Nb de villes top à scraper (hôtels) |
+| `TOP_N_HOTELS` | `20` | Nb max d'hôtels affichés (UI + BDD) |
+| `LOCAL_RETENTION_DAYS` | `30` | Nb de répertoires `data/csv/YYYYMMDD/` conservés localement après upload S3 |
+| `HISTORY_DAYS` | `30` | Étendue du graphique historique des scores (jours) |
+| `CRON_SCHEDULE` | `0 7 * * *` | Planning cron du pipeline (heure Paris, TZ=Europe/Paris) |
+
 ### 2. Liste des villes
 
 Éditer `config/cities.txt` — une ville par ligne (35 villes par défaut).
 
 ## Utilisation
 
+### Initialisation de la base de données (une seule fois)
+
+Avant le premier lancement du pipeline, créer le schéma PostgreSQL :
+
+```bash
+psql $DATABASE_URL -f sql/schema.sql
+```
+
 ### Via Docker (recommandé)
 
-Le pipeline s'exécute automatiquement chaque jour à **06:00 UTC** via cron.
+Le pipeline s'exécute automatiquement chaque jour selon `CRON_SCHEDULE` (défaut : 07h00 heure de Paris) via cron.
 
 ```bash
 # Build de l'image
@@ -117,6 +136,8 @@ Ou en ligne sur [Streamlit Cloud](https://jedha-project-02-kayak-4kzhtcxgjjwncds
 │   ├── json/               # Cache Nominatim et données OWM
 │   └── html/               # Pages HTML Booking.com (debug)
 ├── docs/                   # Documentation complémentaire
+├── sql/
+│   └── schema.sql          # Création des 5 tables PostgreSQL (idempotent)
 ├── src/
 │   ├── scraper_cities.py   # Phase 1 : géocodage Nominatim
 │   ├── scraper_weather.py  # Phase 2 : prévisions OWM
@@ -127,7 +148,7 @@ Ou en ligne sur [Streamlit Cloud](https://jedha-project-02-kayak-4kzhtcxgjjwncds
 │   └── kayak_ui.py         # Phase 7 : dashboard Streamlit
 ├── Dockerfile              # Image unifiée pipeline + Playwright + cron
 ├── entrypoint.sh           # Expose les variables d'env à cron
-├── pipeline.sh             # Orchestrateur des 6 phases
+├── pipeline.sh             # Orchestrateur des phases 1–6
 ├── env_kayak.yml           # Dépendances conda
 └── requirements.txt        # Dépendances pip (Docker)
 ```
