@@ -439,8 +439,8 @@ def parse_hotels_from_listing(html: str, city_id: str, city_name: str) -> list[d
     hotel_blocks = re.split(r'\{"__typename":"SearchResultProperty"', target)
     hotels = []
     for block in hotel_blocks[1:]:
-        lat_m   = re.search(r'"latitude":([\d.]+)', block)
-        lon_m   = re.search(r'"longitude":([\d.]+)', block)
+        lat_m   = re.search(r'"latitude":(-?[\d.]+)', block)
+        lon_m   = re.search(r'"longitude":(-?[\d.]+)', block)
         name_m  = re.search(r'"displayName":\{"__typename":"TextWithTranslationTag","text":"([^"]+)"', block)
         score_m = re.search(r'"totalScore":([\d.]+)', block)
         desc_m  = re.search(r'"description":\{"__typename":"TextWithTranslationTag","text":"([^"]+)"', block)
