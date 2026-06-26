@@ -75,7 +75,7 @@ else:
     st.caption("Date d'extraction inconnue — vérifiez le pipeline.")
 
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def load_weather_scores() -> pd.DataFrame:
     if DATABASE_URL:
         engine = create_engine(DATABASE_URL)
@@ -86,7 +86,7 @@ def load_weather_scores() -> pd.DataFrame:
     return pd.read_csv(files[-1])
 
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def load_cities() -> pd.DataFrame:
     if DATABASE_URL:
         engine = create_engine(DATABASE_URL)
@@ -111,7 +111,7 @@ def load_score_history(city_id: str) -> pd.DataFrame:
     return pd.DataFrame()
 
 
-@st.cache_data
+@st.cache_data(ttl=3600)
 def load_hotels(city: str) -> pd.DataFrame | None:
     """Retourne None si DATABASE_URL absent ou erreur de connexion, DataFrame (éventuellement vide) sinon."""
     if not DATABASE_URL:
