@@ -138,6 +138,9 @@ async def close_popups(page):
         "button[data-testid*='close']",
         "div[role='dialog'] button[aria-label*='Fermer']",
         "div[data-testid='modal-window'] button",
+        # Modale à trap de focus (Genius/connexion) — attribut stable, indépendant des classes hashées
+        "[data-bui-trap-root] button[aria-label*='Fermer']",
+        "[data-bui-trap-root] button[aria-label*='Close']",
     ]
     for sel in selectors:
         try:
@@ -148,6 +151,16 @@ async def close_popups(page):
                 await page.wait_for_timeout(REFRESH_TIMEOUT)
         except Exception:
             continue  # ignore les sélecteurs absents
+
+    # Dernier recours : si une modale à trap de focus est toujours présente sans bouton
+    # de fermeture identifiable, Escape la ferme (comportement standard des modales BUI Booking)
+    try:
+        if await page.locator("[data-bui-trap-root]").is_visible():
+            await page.keyboard.press("Escape")
+            logger.info("Modale [data-bui-trap-root] fermée via Escape")
+            await page.wait_for_timeout(REFRESH_TIMEOUT)
+    except Exception:
+        pass
 
 async def safe_check_visible(page, locator_str: str, timeout: int = 25000):
     """
@@ -237,6 +250,11 @@ async def safe_click(page, locator_str: str, timeout: int = 25000):
     except Exception as e:
         print(f"[safe_click] ⚠️ Clic normal bloqué sur {locator_str}: {e}")
 
+    # 2.5 Modale à trap de focus (Genius/connexion) — tentative de fermeture propre avant
+    # de masquer les overlays en force, sinon le clic JS suivant peut ne pas déclencher
+    # la vraie soumission (la modale reste "ouverte" côté état React de Booking)
+    await close_popups(page)
+
     # 3️ Suppression des overlays courants (Booking, bannières, etc.)
     await page.evaluate("""
     () => {
@@ -244,7 +262,8 @@ async def safe_click(page, locator_str: str, timeout: int = 25000):
             '.bbe73dce14',    // overlay Booking
             '.b8ef7618ca',    // popup Genius / cookies
             '.c2110a275e',    // div générique opaque
-            '.abcc616ecb'     // autre version d'overlay Booking
+            '.abcc616ecb',    // autre version d'overlay Booking
+            '[data-bui-trap-root]'  // modale à trap de focus (attribut stable, classes hashées variables)
         ];
         selectors.forEach(sel => {
             const el = document.querySelector(sel);
@@ -564,6 +583,10 @@ async def main(from_date: datetime, to_date: datetime, top_n: int = TOP_N):
             # si on veut en plus choisir une plage de dates
             #await select_dates(page, fromDate, toDate)
             await save_html(page, f"Formulaire destination {city_name}")
+
+            # fermer une éventuelle modale (Genius/connexion) apparue suite à l'interaction
+            # avec la destination, avant de tenter le clic sur "Rechercher"
+            await close_popups(page)
 
             # valider et lancer la recherche
             #await page.click('button[type="submit"]:has-text("Rechercher")', timeout=CLICK_TIMEOUT)
