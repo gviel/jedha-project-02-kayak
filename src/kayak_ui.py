@@ -151,7 +151,7 @@ col_map1, col_rank = st.columns([3, 1])
 df_map = df.dropna(subset=["lat", "lon"]).copy()
 
 with col_map1:
-    fig1 = px.scatter_mapbox(
+    fig1 = px.scatter_map(
         df_map,
         lat="lat", lon="lon",
         hover_name="city_name",
@@ -161,7 +161,7 @@ with col_map1:
         color_continuous_scale="RdYlGn",
         zoom=4,
         height=520,
-        mapbox_style="carto-positron",
+        map_style="carto-positron",
         custom_data=["city_name"],
     )
     fig1.update_traces(marker=dict(opacity=0.8, sizemin=6))
@@ -169,7 +169,7 @@ with col_map1:
 
     # Étiquettes pour le top 5
     top5 = df_map.head(5)
-    fig1.add_trace(go.Scattermapbox(
+    fig1.add_trace(go.Scattermap(
         lat=top5["lat"],
         lon=top5["lon"],
         mode="text",
@@ -284,7 +284,7 @@ else:
         hotel_table_height = 35 * TOP_N_HOTELS + 38
         map_height = max(520, hotel_table_height)
         # Zoom pour englober tous les hôtels :
-        # Formule Mapbox : zoom = log2(viewport_px / 256 × 360° / span°)
+        # Formule tuiles slippy map (Mapbox/MapLibre) : zoom = log2(viewport_px / 256 × 360° / span°)
         #   - 256 = taille d'une tuile de référence en pixels
         #   - 360° / 180° = étendue totale lon / lat à zoom 0
         # On prend le min(zoom_lon, zoom_lat) pour garantir que les deux axes
@@ -295,7 +295,7 @@ else:
         )) - 1, 15))
 
         with col_map2:
-            fig2 = px.scatter_mapbox(
+            fig2 = px.scatter_map(
                 df_h,
                 lat="lat", lon="lon",
                 hover_name="hotel_name",
@@ -306,7 +306,7 @@ else:
                 zoom=zoom,
                 center={"lat": best["lat"], "lon": best["lon"]},
                 height=map_height,
-                mapbox_style="open-street-map",
+                map_style="open-street-map",
                 custom_data=["hotel_name", "score", "description", "url", "full_address"],
             )
             fig2.update_traces(

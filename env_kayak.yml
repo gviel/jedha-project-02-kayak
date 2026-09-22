@@ -9,7 +9,7 @@ dependencies:
   - requests
   - numpy
   - pandas
-  - plotly
+  - plotly=7.0.0
   - ipykernel # ne pas installer jupyterlab qui est dans base
   - notebook
   - glom
