@@ -6,6 +6,7 @@ glom
 boto3
 sqlalchemy
 psycopg2-binary
+psycopg[binary]
 plotly==7.0.0
 matplotlib
 playwright==1.57.0
