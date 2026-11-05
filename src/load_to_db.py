@@ -102,6 +102,8 @@ if __name__ == "__main__":
         df = read_s3_csv(daily_keys[-1])
         if "date" in df.columns:
             df = df.rename(columns={"date": "date_forecast"})
+        # psycopg3 envoie les str en VARCHAR → conversion explicite vers datetime.date (colonne DATE)
+        df["date_forecast"] = pd.to_datetime(df["date_forecast"]).dt.date
         df.to_sql("weather_scores_daily", engine, if_exists="append", index=False, method=upsert_weather_daily)
         update_history("weather_scores_daily", EXTRACTION_DATE)
         print(f"[OK] weather_scores_daily — {len(df)} rows upserted")
