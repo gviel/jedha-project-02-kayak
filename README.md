@@ -89,13 +89,13 @@ Le pipeline s'exécute automatiquement chaque jour selon `CRON_SCHEDULE` (défau
 docker build -t kayak .
 
 # Lancement du container (pipeline automatique via cron)
-docker run -d --env-file .env -v $(pwd)/data:/app/data kayak
+docker run -d --name kayak --env-file .env -v $(pwd)/data:/app/data kayak
 
 # Suivi des logs
-docker exec <container_id> tail -f /var/log/kayak.log
+docker exec kayak tail -f /var/log/kayak.log
 
 # Exécution manuelle immédiate du pipeline
-docker exec <container_id> bash /app/pipeline.sh
+docker exec kayak bash /app/pipeline.sh
 ```
 
 ### En local (conda)

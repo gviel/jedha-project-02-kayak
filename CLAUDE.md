@@ -37,7 +37,7 @@ conda activate kayak
 python -m ipykernel install --user --name kayak --display-name "KAYAK project"
 # playwright est installé via pip par env_kayak.yml (paquet PyPI-only, non disponible sur conda-forge en Python)
 conda run -n kayak playwright install chromium   # installe le binaire Chromium (~110 MB), requis pour le scraping local
-# Alternative Docker : docker build -t kayak . && docker run --env-file .env kayak
+# Alternative Docker : docker build -t kayak . && docker run --name kayak --env-file .env kayak
 ```
 - API keys go in `.env` (already gitignored):
   - `API_KEY_OWM` — OpenWeatherMap
@@ -83,8 +83,8 @@ Le pipeline complet est orchestré par `pipeline.sh`, exécuté automatiquement 
 ```bash
 # lancement Docker (recommandé)
 docker build -t kayak .
-docker run -d --env-file .env -v $(pwd)/data:/app/data kayak
-docker exec <container> tail -f /var/log/kayak.log
+docker run -d --name kayak --env-file .env -v $(pwd)/data:/app/data kayak
+docker exec kayak tail -f /var/log/kayak.log
 
 # lancement local
 bash pipeline.sh
@@ -100,7 +100,7 @@ See specs in @src/scraper_weather.md
 3. **Score & transform** — script `src/score_weather.py` reads per-slot JSON files, aggregates daytime slots (08:00–20:00) per city/day and applies the weighted scoring model. Produces two CSVs: `weather-scores-daily-<YYYYMMDD>.csv` (score par ville × jour) and `weather-scores-<YYYYMMDD>.csv` (agrégat 4j par ville).
 See specs in @src/score_weather.md
 
-4. **Scrape hotels** — script `src/scraper_hotels.py` drives a headless Chromium browser (Playwright) against Booking.com for the top-N cities from step 3. Raw HTML lands in `data/html/` for debug (optional). Run locally or via `docker run --env-file .env kayak`.
+4. **Scrape hotels** — script `src/scraper_hotels.py` drives a headless Chromium browser (Playwright) against Booking.com for the top-N cities from step 3. Raw HTML lands in `data/html/` for debug (optional). Run locally or via `docker run --name kayak --env-file .env kayak`.
    ```bash
    conda run -n kayak python src/scraper_hotels.py [N] [from_date] [to_date]  # N: nb villes (défaut 5), dates YYYY-MM-DD (défaut J+1→J+4)
    ```
