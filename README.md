@@ -52,6 +52,9 @@ Variables requises dans `.env` :
 | `S3_BUCKET` | Nom du bucket S3 |
 | `DATABASE_URL` | URL PostgreSQL (`postgresql://user:pass@host:port/db`) |
 
+La clé AWS est celle du user IAM dédié `kayak` (lecture/écriture limitée à `csv/` du bucket) : voir
+[`docs/iam-aws.md`](docs/iam-aws.md) (droits, création et rotation de la clé, dépannage 403).
+
 Variables optionnelles (valeur par défaut indiquée) :
 
 | Variable | Défaut | Description |
