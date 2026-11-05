@@ -34,3 +34,9 @@ Biarritz
 Bayonne
 La Rochelle
 Orry la Ville
+Nancy
+Brest
+Clermont-Ferrand
+Saint-Etienne
+Limoges
+Nantes
